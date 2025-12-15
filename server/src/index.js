@@ -2,22 +2,24 @@ import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 
-import researchRoutes from './routes/research.js';
-import contactsRoutes from './routes/contacts.js';
-import emailsRoutes from './routes/emails.js';
-import questionsRoutes from './routes/questions.js';
-import meetingsRoutes from './routes/meetings.js';
-import transcriptsRoutes from './routes/transcripts.js';
-import articlesRoutes from './routes/articles.js';
-import reviewRoutes from './routes/review.js';
-
+// Load environment variables
 dotenv.config();
+
+// Import routes
+import authRoutes from './routes/auth.js';
+import storiesRoutes from './routes/stories.js';
+import contactsRoutes from './routes/contacts.js';
+import researchRoutes from './routes/research.js';
+import settingsRoutes from './routes/settings.js';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
 
 // Middleware
-app.use(cors());
+app.use(cors({
+    origin: ['http://localhost:5173', 'http://localhost:3000'],
+    credentials: true
+}));
 app.use(express.json());
 
 // Request logging
@@ -27,14 +29,11 @@ app.use((req, res, next) => {
 });
 
 // API Routes
-app.use('/api/research', researchRoutes);
+app.use('/api/auth', authRoutes);
+app.use('/api/stories', storiesRoutes);
 app.use('/api/contacts', contactsRoutes);
-app.use('/api/emails', emailsRoutes);
-app.use('/api/questions', questionsRoutes);
-app.use('/api/meetings', meetingsRoutes);
-app.use('/api/transcripts', transcriptsRoutes);
-app.use('/api/articles', articlesRoutes);
-app.use('/api/review', reviewRoutes);
+app.use('/api/research', researchRoutes);
+app.use('/api/settings', settingsRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {
@@ -48,14 +47,11 @@ app.get('/', (req, res) => {
         version: '1.0.0',
         description: 'AI-powered journalism platform API',
         endpoints: {
-            research: '/api/research',
+            auth: '/api/auth',
+            stories: '/api/stories',
             contacts: '/api/contacts',
-            emails: '/api/emails',
-            questions: '/api/questions',
-            meetings: '/api/meetings',
-            transcripts: '/api/transcripts',
-            articles: '/api/articles',
-            review: '/api/review',
+            research: '/api/research',
+            settings: '/api/settings',
         },
     });
 });

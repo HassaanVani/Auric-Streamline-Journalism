@@ -1,57 +1,85 @@
-import express from 'express';
-const router = express.Router();
+import { Router } from 'express';
+import prisma from '../lib/db.js';
+import { authenticateToken } from '../middleware/auth.js';
 
-// Sample research data
-const sampleResults = [
-    { id: 1, title: 'California Climate Policy Overview', source: 'CA Government', relevance: 95, type: 'government', summary: 'Comprehensive overview of state climate initiatives...' },
-    { id: 2, title: 'Impact of AB 32 on Industries', source: 'Environmental Research Institute', relevance: 88, type: 'research', summary: 'Analysis of policy effects on manufacturing and energy...' },
-];
+const router = Router();
 
-// POST /api/research/search - AI-powered research search
-router.post('/search', async (req, res) => {
-    const { query, filters } = req.body;
+router.use(authenticateToken);
 
-    if (!query) {
-        return res.status(400).json({ error: 'Query is required' });
+// Get user's saved research
+router.get('/', async (req, res) => {
+    try {
+        const research = await prisma.research.findMany({
+            where: {
+                story: { userId: req.user.id }
+            },
+            include: {
+                story: { select: { id: true, title: true } }
+            },
+            orderBy: { createdAt: 'desc' }
+        });
+        res.json(research);
+    } catch (error) {
+        console.error('Get research error:', error);
+        res.status(500).json({ error: 'Failed to get research' });
     }
-
-    // Simulate AI processing delay
-    await new Promise(resolve => setTimeout(resolve, 1000));
-
-    res.json({
-        query,
-        results: sampleResults,
-        insights: [
-            'Key policy: AB 32 targets 40% emission reduction by 2030',
-            'Major sectors affected: Transportation, Energy, Agriculture',
-        ],
-        totalResults: sampleResults.length,
-    });
 });
 
-// GET /api/research/history - Get research history
-router.get('/history', (req, res) => {
-    res.json({
-        history: [
-            { id: 1, query: 'Climate change California', date: '2024-03-10', resultCount: 12 },
-            { id: 2, query: 'Housing crisis solutions', date: '2024-03-08', resultCount: 8 },
-        ],
-    });
+// Save research item
+router.post('/', async (req, res) => {
+    try {
+        const { query, results, storyId } = req.body;
+
+        if (!query) {
+            return res.status(400).json({ error: 'Query is required' });
+        }
+
+        // Verify story ownership if storyId provided
+        if (storyId) {
+            const story = await prisma.story.findFirst({
+                where: { id: storyId, userId: req.user.id }
+            });
+            if (!story) {
+                return res.status(404).json({ error: 'Story not found' });
+            }
+        }
+
+        const research = await prisma.research.create({
+            data: {
+                query,
+                results: results ? JSON.stringify(results) : null,
+                storyId: storyId || null
+            }
+        });
+
+        res.status(201).json(research);
+    } catch (error) {
+        console.error('Save research error:', error);
+        res.status(500).json({ error: 'Failed to save research' });
+    }
 });
 
-// POST /api/research/save - Save research item
-router.post('/save', (req, res) => {
-    const { itemId, notes } = req.body;
-    res.json({ success: true, message: 'Research item saved', itemId });
-});
+// Delete research item
+router.delete('/:id', async (req, res) => {
+    try {
+        const research = await prisma.research.findFirst({
+            where: { id: req.params.id },
+            include: { story: true }
+        });
 
-// GET /api/research/saved - Get saved research
-router.get('/saved', (req, res) => {
-    res.json({
-        saved: [
-            { id: 1, title: 'Climate Policy Overview', savedAt: '2024-03-10' },
-        ],
-    });
+        if (!research || (research.story && research.story.userId !== req.user.id)) {
+            return res.status(404).json({ error: 'Research not found' });
+        }
+
+        await prisma.research.delete({
+            where: { id: req.params.id }
+        });
+
+        res.json({ message: 'Research deleted' });
+    } catch (error) {
+        console.error('Delete research error:', error);
+        res.status(500).json({ error: 'Failed to delete research' });
+    }
 });
 
 export default router;

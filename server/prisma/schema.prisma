@@ -1,0 +1,116 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  name      String
+  password  String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  stories   Story[]
+  contacts  Contact[]
+  settings  Settings?
+}
+
+model Settings {
+  id            String  @id @default(uuid())
+  userId        String  @unique
+  user          User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  theme         String  @default("dark")
+  notifications Boolean @default(true)
+}
+
+model Story {
+  id          String   @id @default(uuid())
+  title       String
+  description String?
+  status      String   @default("draft")
+  progress    Int      @default(0)
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  contacts    StoryContact[]
+  research    Research[]
+  articles    Article[]
+  meetings    Meeting[]
+  transcripts Transcript[]
+}
+
+model Contact {
+  id        String   @id @default(uuid())
+  name      String
+  email     String?
+  role      String?
+  org       String?
+  location  String?
+  expertise String?
+  notes     String?
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  stories   StoryContact[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model StoryContact {
+  id        String  @id @default(uuid())
+  storyId   String
+  contactId String
+  status    String  @default("identified")
+  story     Story   @relation(fields: [storyId], references: [id], onDelete: Cascade)
+  contact   Contact @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  @@unique([storyId, contactId])
+}
+
+model Research {
+  id        String   @id @default(uuid())
+  query     String
+  results   String?
+  storyId   String?
+  story     Story?   @relation(fields: [storyId], references: [id], onDelete: SetNull)
+  createdAt DateTime @default(now())
+}
+
+model Article {
+  id        String   @id @default(uuid())
+  title     String
+  content   String   @default("")
+  status    String   @default("draft")
+  storyId   String
+  story     Story    @relation(fields: [storyId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Meeting {
+  id          String   @id @default(uuid())
+  title       String
+  date        DateTime
+  duration    Int      @default(30)
+  platform    String   @default("zoom")
+  status      String   @default("scheduled")
+  storyId     String
+  story       Story    @relation(fields: [storyId], references: [id], onDelete: Cascade)
+  contactName String?
+  notes       String?
+  createdAt   DateTime @default(now())
+}
+
+model Transcript {
+  id        String   @id @default(uuid())
+  title     String
+  content   String   @default("")
+  duration  String?
+  storyId   String
+  story     Story    @relation(fields: [storyId], references: [id], onDelete: Cascade)
+  source    String?
+  createdAt DateTime @default(now())
+}

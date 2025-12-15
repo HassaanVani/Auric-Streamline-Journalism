@@ -1,75 +1,156 @@
-import { useState } from 'react';
-import { motion } from 'framer-motion';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import { useApi } from '../hooks/useApi';
+import { NewStoryModal } from '../components/NewStoryModal';
 import {
     Plus,
     Clock,
     FileText,
-    Calendar,
+    Users,
+    Search,
     Sparkles,
     ArrowRight,
-    Edit,
-    Upload,
-    MessageSquare
+    FolderOpen
 } from 'lucide-react';
 
-const currentStory = {
-    title: 'Climate Policy Reform in California',
-    subtitle: 'Investigating the impact of AB 32 on local communities and industries',
-    status: 'In Progress',
-    progress: 65,
-    lastUpdated: '2 hours ago',
-};
-
-const storyElements = [
-    { title: 'Background Research', status: 'complete', count: 12 },
-    { title: 'Sources Identified', status: 'active', count: 4 },
-    { title: 'Interviews Scheduled', status: 'pending', count: 2 },
-    { title: 'Article Draft', status: 'pending', count: 0 },
-];
-
-const sources = [
-    { name: 'Dr. Sarah Chen', role: 'Climate Scientist', org: 'UC Berkeley', initials: 'SC' },
-    { name: 'Mayor James Wilson', role: 'Mayor', org: 'City of Oakland', initials: 'JW' },
-    { name: 'Lisa Martinez', role: 'Community Organizer', org: 'Bay Area Coalition', initials: 'LM' },
-];
-
-const aiSuggestions = [
-    'Consider reaching out to state legislators for policy perspective',
-    'EPA released new report yesterday that may be relevant',
-];
-
-const quickActions = [
-    { icon: Edit, label: 'Add Note' },
-    { icon: Upload, label: 'Import' },
-    { icon: Calendar, label: 'Schedule' },
-    { icon: FileText, label: 'Report' },
-];
-
 export function Dashboard() {
+    const api = useApi();
+    const [stories, setStories] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [showNewStory, setShowNewStory] = useState(false);
+    const [currentStory, setCurrentStory] = useState(null);
+
+    useEffect(() => {
+        loadStories();
+    }, []);
+
+    const loadStories = async () => {
+        try {
+            const data = await api.get('/stories');
+            setStories(data);
+            // Set the most recent story as current
+            if (data.length > 0) {
+                setCurrentStory(data[0]);
+            }
+        } catch (err) {
+            console.error('Failed to load stories:', err);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleCreateStory = async (storyData) => {
+        const newStory = await api.post('/stories', storyData);
+        setStories([newStory, ...stories]);
+        setCurrentStory(newStory);
+    };
+
+    const formatDate = (dateString) => {
+        const date = new Date(dateString);
+        const now = new Date();
+        const diffHours = Math.floor((now - date) / (1000 * 60 * 60));
+
+        if (diffHours < 1) return 'Just now';
+        if (diffHours < 24) return `${diffHours}h ago`;
+        if (diffHours < 48) return 'Yesterday';
+        return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    };
+
+    if (loading) {
+        return (
+            <div className="page-container" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '50vh' }}>
+                <p className="text-body">Loading your stories...</p>
+            </div>
+        );
+    }
+
+    // Empty state - no stories yet
+    if (stories.length === 0) {
+        return (
+            <div className="page-container">
+                <div style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    minHeight: '60vh',
+                    textAlign: 'center'
+                }}>
+                    <div style={{
+                        width: '80px',
+                        height: '80px',
+                        borderRadius: '20px',
+                        background: 'var(--gold-muted)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        marginBottom: '1.5rem'
+                    }}>
+                        <FolderOpen style={{ width: '40px', height: '40px', color: 'var(--gold)' }} />
+                    </div>
+
+                    <h1 className="text-h1" style={{ marginBottom: '0.75rem' }}>Welcome to Auric</h1>
+                    <p className="text-body" style={{ maxWidth: '400px', marginBottom: '2rem' }}>
+                        Start your first investigation. Create a story to organize your research, sources, and drafts.
+                    </p>
+
+                    <button
+                        onClick={() => setShowNewStory(true)}
+                        className="btn btn-primary"
+                        style={{ padding: '1rem 2rem', fontSize: '1rem' }}
+                    >
+                        <Plus style={{ width: '20px', height: '20px' }} />
+                        Create Your First Story
+                    </button>
+                </div>
+
+                <NewStoryModal
+                    isOpen={showNewStory}
+                    onClose={() => setShowNewStory(false)}
+                    onCreate={handleCreateStory}
+                />
+            </div>
+        );
+    }
+
     return (
         <div className="page-container">
             {/* Page Header */}
             <header className="page-header">
-                <p className="text-label" style={{ marginBottom: '1rem' }}>CURRENT STORY</p>
-                <h1 className="text-display" style={{ marginBottom: '0.75rem' }}>{currentStory.title}</h1>
-                <p className="text-body" style={{ marginBottom: '2rem', maxWidth: '600px' }}>{currentStory.subtitle}</p>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                    <div>
+                        <p className="text-label" style={{ marginBottom: '1rem' }}>CURRENT STORY</p>
+                        <h1 className="text-display" style={{ marginBottom: '0.75rem' }}>{currentStory?.title}</h1>
+                        {currentStory?.description && (
+                            <p className="text-body" style={{ marginBottom: '1.5rem', maxWidth: '600px' }}>{currentStory.description}</p>
+                        )}
 
-                <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem', marginBottom: '1.5rem' }}>
-                    <span className="badge badge-gold">{currentStory.status}</span>
-                    <span className="text-small" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                        <Clock style={{ width: '14px', height: '14px' }} />
-                        Updated {currentStory.lastUpdated}
-                    </span>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
+                            <span className="badge badge-gold" style={{ textTransform: 'capitalize' }}>{currentStory?.status}</span>
+                            <span className="text-small" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                <Clock style={{ width: '14px', height: '14px' }} />
+                                Updated {formatDate(currentStory?.updatedAt)}
+                            </span>
+                        </div>
+                    </div>
+
+                    <button
+                        onClick={() => setShowNewStory(true)}
+                        className="btn btn-primary"
+                    >
+                        <Plus style={{ width: '16px', height: '16px' }} />
+                        New Story
+                    </button>
                 </div>
 
-                <div style={{ maxWidth: '500px' }}>
+                {/* Progress */}
+                <div style={{ maxWidth: '500px', marginTop: '2rem' }}>
                     <div className="progress-bar" style={{ marginBottom: '0.5rem' }}>
-                        <div className="progress-fill" style={{ width: `${currentStory.progress}%` }} />
+                        <div className="progress-fill" style={{ width: `${currentStory?.progress || 0}%` }} />
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                         <span className="text-small">Research</span>
-                        <span className="text-small text-gold" style={{ fontWeight: 600 }}>{currentStory.progress}%</span>
+                        <span className="text-small text-gold" style={{ fontWeight: 600 }}>{currentStory?.progress || 0}%</span>
                         <span className="text-small">Published</span>
                     </div>
                 </div>
@@ -79,84 +160,51 @@ export function Dashboard() {
             <div className="grid-main">
                 {/* Left Content */}
                 <div>
-                    {/* Story Elements */}
+                    {/* Quick Actions */}
                     <section className="section">
-                        <h2 className="text-h3" style={{ marginBottom: '1.5rem' }}>Story Elements</h2>
-
-                        <div className="timeline">
-                            {storyElements.map((item, i) => (
-                                <div key={i} className="timeline-item">
-                                    <div className={`timeline-dot ${item.status === 'complete' ? 'complete' : ''}`}
-                                        style={item.status === 'active' ? { background: 'var(--gold)', boxShadow: '0 0 8px rgba(212, 168, 83, 0.5)' } : {}} />
-                                    <div>
-                                        <p style={{
-                                            fontSize: '1rem',
-                                            fontWeight: 500,
-                                            color: item.status === 'active' ? 'var(--gold)' : 'var(--text-primary)',
-                                            marginBottom: '0.25rem'
-                                        }}>
-                                            {item.title}
+                        <h2 className="text-h3" style={{ marginBottom: '1.5rem' }}>Quick Actions</h2>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem' }}>
+                            {[
+                                { to: '/research', icon: Search, label: 'Research', desc: 'Find sources & data' },
+                                { to: '/contacts', icon: Users, label: 'Sources', desc: 'Manage contacts' },
+                                { to: '/drafts', icon: FileText, label: 'Draft', desc: 'Write article' },
+                            ].map((action) => (
+                                <Link key={action.to} to={action.to} style={{ textDecoration: 'none' }}>
+                                    <div className="card card-interactive" style={{ padding: '1.5rem' }}>
+                                        <action.icon style={{ width: '24px', height: '24px', color: 'var(--gold)', marginBottom: '1rem' }} />
+                                        <p style={{ fontSize: '1rem', fontWeight: 500, color: 'var(--text-primary)', marginBottom: '0.25rem' }}>
+                                            {action.label}
                                         </p>
-                                        <p className="text-small">{item.count} items</p>
+                                        <p className="text-small">{action.desc}</p>
                                     </div>
-                                </div>
+                                </Link>
                             ))}
                         </div>
                     </section>
 
-                    {/* Sources */}
+                    {/* Story Stats */}
                     <section className="section">
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-                            <h2 className="text-h3">Sources</h2>
-                            <Link to="/contacts" className="text-small text-gold" style={{ textDecoration: 'none' }}>
-                                View all →
-                            </Link>
-                        </div>
-
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                            {sources.map((source, i) => (
-                                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                                    <div className="avatar">{source.initials}</div>
-                                    <div>
-                                        <p style={{ fontSize: '0.9375rem', fontWeight: 500, color: 'var(--text-primary)', marginBottom: '0.125rem' }}>
-                                            {source.name}
-                                        </p>
-                                        <p className="text-small">{source.role}, {source.org}</p>
-                                    </div>
+                        <h2 className="text-h3" style={{ marginBottom: '1.5rem' }}>Story Overview</h2>
+                        <div className="card">
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '2rem' }}>
+                                <div style={{ textAlign: 'center' }}>
+                                    <p className="text-display" style={{ fontSize: '2.5rem', marginBottom: '0.25rem' }}>
+                                        {currentStory?._count?.contacts || 0}
+                                    </p>
+                                    <p className="text-small">Sources</p>
                                 </div>
-                            ))}
-                        </div>
-                    </section>
-
-                    {/* Story Overview Panel */}
-                    <section className="panel" style={{ marginTop: '2rem' }}>
-                        <p className="text-label">STORY OVERVIEW</p>
-
-                        <div style={{
-                            aspectRatio: '16/9',
-                            background: 'var(--bg-tertiary)',
-                            borderRadius: '12px',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            marginTop: '1rem'
-                        }}>
-                            <span className="text-small">Story visualization</span>
-                        </div>
-
-                        <p className="text-body" style={{ marginTop: '1.5rem' }}>
-                            Investigating the impact of California's climate policy, specifically AB 32
-                            and the cap-and-trade system, on local communities and industries.
-                        </p>
-
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', marginTop: '1.5rem' }}>
-                            <div>
-                                <p className="text-label" style={{ marginBottom: '0.5rem' }}>Key Entities</p>
-                                <p className="text-small" style={{ color: 'var(--text-secondary)' }}>CARB, UC Berkeley, City of Oakland</p>
-                            </div>
-                            <div>
-                                <p className="text-label" style={{ marginBottom: '0.5rem' }}>Topics</p>
-                                <p className="text-small" style={{ color: 'var(--text-secondary)' }}>Climate Policy, Cap-and-Trade</p>
+                                <div style={{ textAlign: 'center' }}>
+                                    <p className="text-display" style={{ fontSize: '2.5rem', marginBottom: '0.25rem' }}>
+                                        {currentStory?._count?.research || 0}
+                                    </p>
+                                    <p className="text-small">Research</p>
+                                </div>
+                                <div style={{ textAlign: 'center' }}>
+                                    <p className="text-display" style={{ fontSize: '2.5rem', marginBottom: '0.25rem' }}>
+                                        {currentStory?._count?.articles || 0}
+                                    </p>
+                                    <p className="text-small">Drafts</p>
+                                </div>
                             </div>
                         </div>
                     </section>
@@ -164,22 +212,27 @@ export function Dashboard() {
 
                 {/* Right Sidebar */}
                 <div className="grid-sidebar">
-                    {/* Quick Actions */}
-                    <div>
-                        <p className="text-label" style={{ marginBottom: '1rem' }}>QUICK ACTIONS</p>
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
-                            {quickActions.map((action, i) => (
-                                <button
-                                    key={i}
-                                    className="card card-interactive"
-                                    style={{ padding: '1rem', display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '0.75rem', cursor: 'pointer', border: '1px solid var(--border-subtle)' }}
-                                >
-                                    <action.icon style={{ width: '16px', height: '16px', color: 'var(--gold)' }} />
-                                    <span className="text-small" style={{ color: 'var(--text-secondary)' }}>{action.label}</span>
-                                </button>
-                            ))}
+                    {/* Other Stories */}
+                    {stories.length > 1 && (
+                        <div>
+                            <p className="text-label" style={{ marginBottom: '1rem' }}>OTHER STORIES</p>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                                {stories.filter(s => s.id !== currentStory?.id).slice(0, 3).map((story) => (
+                                    <button
+                                        key={story.id}
+                                        onClick={() => setCurrentStory(story)}
+                                        className="card card-interactive"
+                                        style={{ padding: '1rem', textAlign: 'left', width: '100%', cursor: 'pointer' }}
+                                    >
+                                        <p style={{ fontSize: '0.9375rem', fontWeight: 500, color: 'var(--text-primary)', marginBottom: '0.25rem' }}>
+                                            {story.title}
+                                        </p>
+                                        <p className="text-small">{formatDate(story.updatedAt)}</p>
+                                    </button>
+                                ))}
+                            </div>
                         </div>
-                    </div>
+                    )}
 
                     {/* AI Insights */}
                     <div className="panel panel-gold">
@@ -188,38 +241,29 @@ export function Dashboard() {
                             <p className="text-label text-gold">AI INSIGHTS</p>
                         </div>
 
-                        <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                            {aiSuggestions.map((item, i) => (
-                                <li key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: '0.75rem' }}>
-                                    <span style={{ color: 'var(--gold)' }}>•</span>
-                                    <span className="text-small" style={{ color: 'var(--text-secondary)' }}>{item}</span>
-                                </li>
-                            ))}
-                        </ul>
+                        <p className="text-body" style={{ marginBottom: '1rem' }}>
+                            Get AI-powered suggestions for your story based on your research and sources.
+                        </p>
 
-                        <button className="text-small text-gold" style={{ marginTop: '1rem', background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                            Ask Auric AI <ArrowRight style={{ width: '12px', height: '12px' }} />
-                        </button>
-                    </div>
-
-                    {/* Timeline */}
-                    <div>
-                        <p className="text-label" style={{ marginBottom: '1rem' }}>TIMELINE</p>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                            {[
-                                { date: 'Dec 10', event: 'Initial research started' },
-                                { date: 'Dec 12', event: 'Dr. Chen interview confirmed' },
-                                { date: 'Dec 15', event: 'Scheduled interview' },
-                            ].map((item, i) => (
-                                <div key={i} style={{ display: 'flex', gap: '1rem' }}>
-                                    <span className="text-mono text-gold" style={{ width: '48px' }}>{item.date}</span>
-                                    <span className="text-small" style={{ color: 'var(--text-secondary)' }}>{item.event}</span>
-                                </div>
-                            ))}
-                        </div>
+                        <Link to="/research" style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '0.25rem',
+                            fontSize: '0.875rem',
+                            color: 'var(--gold)',
+                            textDecoration: 'none'
+                        }}>
+                            Start researching <ArrowRight style={{ width: '14px', height: '14px' }} />
+                        </Link>
                     </div>
                 </div>
             </div>
+
+            <NewStoryModal
+                isOpen={showNewStory}
+                onClose={() => setShowNewStory(false)}
+                onCreate={handleCreateStory}
+            />
         </div>
     );
 }

@@ -1,57 +1,81 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import { useApi } from '../hooks/useApi';
 import {
     Search,
     Plus,
     MapPin,
     ChevronRight,
     Sparkles,
-    Filter
+    X,
+    Check,
+    AlertCircle
 } from 'lucide-react';
 
-const contacts = [
-    {
-        id: 1,
-        name: 'Dr. Sarah Chen',
-        role: 'Climate Scientist',
-        org: 'UC Berkeley',
-        location: 'Berkeley, CA',
-        initials: 'SC',
-        expertise: ['Climate Policy', 'Cap-and-Trade'],
-        status: 'confirmed',
-        match: 95,
-    },
-    {
-        id: 2,
-        name: 'Mayor James Wilson',
-        role: 'Mayor',
-        org: 'City of Oakland',
-        location: 'Oakland, CA',
-        initials: 'JW',
-        expertise: ['Local Government', 'Urban Policy'],
-        status: 'pending',
-        match: 88,
-    },
-    {
-        id: 3,
-        name: 'Lisa Martinez',
-        role: 'Community Organizer',
-        org: 'Bay Area Climate Coalition',
-        location: 'San Francisco, CA',
-        initials: 'LM',
-        expertise: ['Grassroots Organizing'],
-        status: 'scheduled',
-        match: 82,
-    },
-];
-
-const suggestions = [
-    { name: 'State Senator Alex Rivera', role: 'CA State Senate', match: 92 },
-    { name: 'EPA Regional Director', role: 'US EPA Region 9', match: 87 },
-];
-
 export function Contacts() {
+    const api = useApi();
+    const [contacts, setContacts] = useState([]);
+    const [loading, setLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState('');
+    const [showAddForm, setShowAddForm] = useState(false);
+
+    // New contact form
+    const [newContact, setNewContact] = useState({ name: '', email: '', role: '', org: '', location: '', expertise: '' });
+    const [saving, setSaving] = useState(false);
+    const [error, setError] = useState('');
+
+    useEffect(() => {
+        loadContacts();
+    }, []);
+
+    const loadContacts = async () => {
+        try {
+            const data = await api.get('/contacts');
+            setContacts(data);
+        } catch (err) {
+            console.error('Failed to load contacts:', err);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleAddContact = async (e) => {
+        e.preventDefault();
+        if (!newContact.name.trim()) {
+            setError('Name is required');
+            return;
+        }
+
+        setSaving(true);
+        setError('');
+
+        try {
+            const created = await api.post('/contacts', newContact);
+            setContacts([created, ...contacts]);
+            setNewContact({ name: '', email: '', role: '', org: '', location: '', expertise: '' });
+            setShowAddForm(false);
+        } catch (err) {
+            setError(err.message);
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    const filteredContacts = contacts.filter(c =>
+        c.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        c.org?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        c.role?.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+
+    const getInitials = (name) => name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+
+    if (loading) {
+        return (
+            <div className="page-container" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '50vh' }}>
+                <p className="text-body">Loading contacts...</p>
+            </div>
+        );
+    }
 
     return (
         <div className="page-container">
@@ -85,53 +109,149 @@ export function Contacts() {
                     />
                 </div>
 
-                <div style={{ display: 'flex', gap: '0.75rem' }}>
-                    <button className="btn btn-secondary">
-                        <Filter style={{ width: '16px', height: '16px' }} />
-                        Filter
-                    </button>
-                    <button className="btn btn-primary">
-                        <Plus style={{ width: '16px', height: '16px' }} />
-                        Add Contact
-                    </button>
-                </div>
+                <button onClick={() => setShowAddForm(true)} className="btn btn-primary">
+                    <Plus style={{ width: '16px', height: '16px' }} />
+                    Add Contact
+                </button>
             </div>
 
-            <div className="grid-main">
-                {/* Contacts List */}
-                <div>
-                    {contacts.map((contact) => (
+            {/* Add Contact Form */}
+            {showAddForm && (
+                <div className="panel" style={{ marginBottom: '2rem' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+                        <h2 className="text-h3">Add New Contact</h2>
+                        <button onClick={() => setShowAddForm(false)} className="btn-ghost" style={{ padding: '0.5rem' }}>
+                            <X style={{ width: '20px', height: '20px' }} />
+                        </button>
+                    </div>
+
+                    {error && (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.75rem', marginBottom: '1rem', background: 'rgba(248, 113, 113, 0.1)', borderRadius: '8px' }}>
+                            <AlertCircle style={{ width: '16px', height: '16px', color: 'var(--danger)' }} />
+                            <span className="text-small" style={{ color: 'var(--danger)' }}>{error}</span>
+                        </div>
+                    )}
+
+                    <form onSubmit={handleAddContact}>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
+                            <div>
+                                <label className="text-label" style={{ display: 'block', marginBottom: '0.5rem' }}>Name *</label>
+                                <input
+                                    type="text"
+                                    value={newContact.name}
+                                    onChange={(e) => setNewContact({ ...newContact, name: e.target.value })}
+                                    className="input"
+                                    placeholder="Full name"
+                                />
+                            </div>
+                            <div>
+                                <label className="text-label" style={{ display: 'block', marginBottom: '0.5rem' }}>Email</label>
+                                <input
+                                    type="email"
+                                    value={newContact.email}
+                                    onChange={(e) => setNewContact({ ...newContact, email: e.target.value })}
+                                    className="input"
+                                    placeholder="email@example.com"
+                                />
+                            </div>
+                            <div>
+                                <label className="text-label" style={{ display: 'block', marginBottom: '0.5rem' }}>Role/Title</label>
+                                <input
+                                    type="text"
+                                    value={newContact.role}
+                                    onChange={(e) => setNewContact({ ...newContact, role: e.target.value })}
+                                    className="input"
+                                    placeholder="e.g., Climate Scientist"
+                                />
+                            </div>
+                            <div>
+                                <label className="text-label" style={{ display: 'block', marginBottom: '0.5rem' }}>Organization</label>
+                                <input
+                                    type="text"
+                                    value={newContact.org}
+                                    onChange={(e) => setNewContact({ ...newContact, org: e.target.value })}
+                                    className="input"
+                                    placeholder="e.g., UC Berkeley"
+                                />
+                            </div>
+                            <div>
+                                <label className="text-label" style={{ display: 'block', marginBottom: '0.5rem' }}>Location</label>
+                                <input
+                                    type="text"
+                                    value={newContact.location}
+                                    onChange={(e) => setNewContact({ ...newContact, location: e.target.value })}
+                                    className="input"
+                                    placeholder="e.g., Berkeley, CA"
+                                />
+                            </div>
+                            <div>
+                                <label className="text-label" style={{ display: 'block', marginBottom: '0.5rem' }}>Expertise</label>
+                                <input
+                                    type="text"
+                                    value={newContact.expertise}
+                                    onChange={(e) => setNewContact({ ...newContact, expertise: e.target.value })}
+                                    className="input"
+                                    placeholder="e.g., Climate Policy, Data Analysis"
+                                />
+                            </div>
+                        </div>
+                        <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end' }}>
+                            <button type="button" onClick={() => setShowAddForm(false)} className="btn btn-secondary">Cancel</button>
+                            <button type="submit" disabled={saving} className="btn btn-primary">
+                                {saving ? 'Adding...' : 'Add Contact'}
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            )}
+
+            {/* Empty state */}
+            {contacts.length === 0 && !showAddForm && (
+                <div className="panel" style={{ textAlign: 'center', padding: '4rem 2rem' }}>
+                    <Sparkles style={{ width: '48px', height: '48px', color: 'var(--gold)', margin: '0 auto 1.5rem' }} />
+                    <h2 className="text-h2" style={{ marginBottom: '0.75rem' }}>No contacts yet</h2>
+                    <p className="text-body" style={{ maxWidth: '400px', margin: '0 auto 2rem' }}>
+                        Add your first source or contact to start building your network.
+                    </p>
+                    <button onClick={() => setShowAddForm(true)} className="btn btn-primary">
+                        <Plus style={{ width: '16px', height: '16px' }} />
+                        Add Your First Contact
+                    </button>
+                </div>
+            )}
+
+            {/* Contacts List */}
+            {filteredContacts.length > 0 && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                    {filteredContacts.map((contact) => (
                         <Link key={contact.id} to={`/contacts/${contact.id}`} style={{ textDecoration: 'none' }}>
-                            <div className="list-item card-interactive" style={{ marginBottom: '1rem' }}>
-                                <div className="avatar-lg">{contact.initials}</div>
+                            <div className="list-item card-interactive">
+                                <div className="avatar-lg">{getInitials(contact.name)}</div>
 
                                 <div className="list-item-content">
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.375rem' }}>
                                         <span className="list-item-title">{contact.name}</span>
-                                        <span className="badge badge-gold">{contact.match}%</span>
-                                        {contact.status && (
-                                            <span className={`badge ${contact.status === 'confirmed' ? 'badge-success' :
-                                                    contact.status === 'pending' ? 'badge-warning' : 'badge-info'
-                                                }`}>
-                                                {contact.status}
-                                            </span>
+                                        {contact.stories?.length > 0 && (
+                                            <span className="badge badge-gold">{contact.stories.length} stories</span>
                                         )}
                                     </div>
 
-                                    <p className="text-small" style={{ marginBottom: '0.5rem', color: 'var(--text-secondary)' }}>
-                                        {contact.role} at {contact.org}
-                                    </p>
+                                    {(contact.role || contact.org) && (
+                                        <p className="text-small" style={{ marginBottom: '0.5rem', color: 'var(--text-secondary)' }}>
+                                            {[contact.role, contact.org].filter(Boolean).join(' at ')}
+                                        </p>
+                                    )}
 
                                     <div className="list-item-meta">
-                                        <span style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
-                                            <MapPin style={{ width: '14px', height: '14px' }} />
-                                            {contact.location}
-                                        </span>
-                                        <div style={{ display: 'flex', gap: '0.5rem' }}>
-                                            {contact.expertise.map((exp) => (
-                                                <span key={exp} className="badge">{exp}</span>
-                                            ))}
-                                        </div>
+                                        {contact.location && (
+                                            <span style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
+                                                <MapPin style={{ width: '14px', height: '14px' }} />
+                                                {contact.location}
+                                            </span>
+                                        )}
+                                        {contact.expertise && (
+                                            <span className="badge">{contact.expertise}</span>
+                                        )}
                                     </div>
                                 </div>
 
@@ -140,62 +260,14 @@ export function Contacts() {
                         </Link>
                     ))}
                 </div>
+            )}
 
-                {/* Sidebar */}
-                <div className="grid-sidebar">
-                    {/* AI Suggestions */}
-                    <div className="panel panel-gold">
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
-                            <Sparkles style={{ width: '16px', height: '16px', color: 'var(--gold)' }} />
-                            <p className="text-label text-gold">SUGGESTED SOURCES</p>
-                        </div>
-
-                        <p className="text-small" style={{ marginBottom: '1.25rem', color: 'var(--text-secondary)' }}>
-                            Based on your climate policy story
-                        </p>
-
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                            {suggestions.map((s, i) => (
-                                <div key={i} className="card" style={{ padding: '1rem' }}>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                                        <div>
-                                            <p style={{ fontSize: '0.875rem', fontWeight: 500, color: 'var(--text-primary)', marginBottom: '0.25rem' }}>
-                                                {s.name}
-                                            </p>
-                                            <p className="text-small">{s.role}</p>
-                                        </div>
-                                        <span className="text-small text-gold" style={{ fontWeight: 600 }}>{s.match}%</span>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-
-                        <button className="btn btn-secondary" style={{ width: '100%', marginTop: '1rem' }}>
-                            View All
-                        </button>
-                    </div>
-
-                    {/* Stats */}
-                    <div className="card">
-                        <p className="text-label" style={{ marginBottom: '1rem' }}>STORY SOURCES</p>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                            {[
-                                { label: 'Total identified', value: '12' },
-                                { label: 'Contacted', value: '4' },
-                                { label: 'Confirmed', value: '2', color: 'var(--success)' },
-                                { label: 'Pending', value: '2', color: 'var(--warning)' },
-                            ].map((stat) => (
-                                <div key={stat.label} style={{ display: 'flex', justifyContent: 'space-between' }}>
-                                    <span className="text-small">{stat.label}</span>
-                                    <span style={{ fontSize: '0.875rem', fontWeight: 500, color: stat.color || 'var(--text-primary)' }}>
-                                        {stat.value}
-                                    </span>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
+            {/* No results */}
+            {contacts.length > 0 && filteredContacts.length === 0 && (
+                <div className="panel" style={{ textAlign: 'center', padding: '3rem 2rem' }}>
+                    <p className="text-body">No contacts match "{searchQuery}"</p>
                 </div>
-            </div>
+            )}
         </div>
     );
 }
