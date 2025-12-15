@@ -1,12 +1,8 @@
-import { motion } from 'framer-motion';
-
 export function Avatar({
-    src,
     name,
+    src,
     size = 'md',
-    showStatus = false,
-    status = 'online',
-    glow = false,
+    status,
     className = ''
 }) {
     const sizes = {
@@ -16,92 +12,57 @@ export function Avatar({
         xl: 'w-16 h-16 text-lg',
     };
 
-    const statusColors = {
-        online: 'bg-emerald-500',
-        offline: 'bg-slate-500',
-        busy: 'bg-red-500',
-        away: 'bg-amber-500',
-    };
-
-    const getInitials = (name) => {
-        if (!name) return '?';
-        return name
-            .split(' ')
-            .map(word => word[0])
-            .join('')
-            .toUpperCase()
-            .slice(0, 2);
-    };
+    const initials = name
+        ?.split(' ')
+        .map((n) => n[0])
+        .join('')
+        .slice(0, 2)
+        .toUpperCase();
 
     return (
-        <div className={`relative inline-block ${className}`}>
-            <motion.div
-                whileHover={{ scale: 1.05 }}
-                className={`
-          ${sizes[size]}
-          rounded-full overflow-hidden
-          flex items-center justify-center
-          font-medium
-          ${glow ? 'shadow-neon-glow' : ''}
-        `}
-                style={{
-                    border: '2px solid transparent',
-                    background: src
-                        ? 'transparent'
-                        : 'linear-gradient(135deg, #0a0e27, #0a0e27) padding-box, linear-gradient(135deg, #00f5ff, #ff00ff) border-box',
-                }}
-            >
-                {src ? (
-                    <img
-                        src={src}
-                        alt={name}
-                        className="w-full h-full object-cover"
-                    />
-                ) : (
-                    <span className="text-gradient">{getInitials(name)}</span>
-                )}
-            </motion.div>
-
-            {/* Status indicator */}
-            {showStatus && (
-                <span
-                    className={`
-            absolute bottom-0 right-0 
-            w-3 h-3 rounded-full 
-            border-2 border-midnight
-            ${statusColors[status]}
-          `}
+        <div className={`relative flex-shrink-0 ${className}`}>
+            {src ? (
+                <img
+                    src={src}
+                    alt={name}
+                    className={`rounded-full object-cover border-2 border-[#2a2a2a] ${sizes[size]}`}
                 />
+            ) : (
+                <div className={`
+          ${sizes[size]} rounded-full 
+          bg-gradient-to-br from-[#D4AF37]/20 to-[#8B6914]/10 
+          border border-[#D4AF37]/30
+          flex items-center justify-center 
+          font-serif font-medium text-[#D4AF37]
+        `}>
+                    {initials}
+                </div>
+            )}
+
+            {status && (
+                <span className={`
+          absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-[#0a0a0a]
+          ${status === 'online' ? 'bg-[#4ADE80]' : ''}
+          ${status === 'busy' ? 'bg-[#F87171]' : ''}
+          ${status === 'away' ? 'bg-[#FBBF24]' : ''}
+          ${status === 'offline' ? 'bg-[#525252]' : ''}
+        `} />
             )}
         </div>
     );
 }
 
-export function AvatarGroup({ avatars, max = 4, size = 'md' }) {
-    const displayAvatars = avatars.slice(0, max);
+export function AvatarGroup({ avatars, max = 4, size = 'sm' }) {
+    const displayed = avatars.slice(0, max);
     const remaining = avatars.length - max;
 
     return (
         <div className="flex -space-x-2">
-            {displayAvatars.map((avatar, index) => (
-                <Avatar
-                    key={index}
-                    src={avatar.src}
-                    name={avatar.name}
-                    size={size}
-                    className="ring-2 ring-midnight"
-                />
+            {displayed.map((avatar, i) => (
+                <Avatar key={i} {...avatar} size={size} className="ring-2 ring-[#0a0a0a]" />
             ))}
             {remaining > 0 && (
-                <div
-                    className={`
-            ${size === 'sm' ? 'w-8 h-8 text-xs' : 'w-10 h-10 text-sm'}
-            rounded-full bg-white/10 border border-white/20
-            flex items-center justify-center
-            text-slate-300 font-medium
-            ring-2 ring-midnight
-          `}
-                >
+                <div className="w-8 h-8 rounded-full bg-[#1f1f1f] border border-[#2a2a2a] flex items-center justify-center text-xs text-[#737373]">
                     +{remaining}
                 </div>
             )}

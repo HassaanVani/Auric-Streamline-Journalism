@@ -1,306 +1,251 @@
 import { useState } from 'react';
-import { motion } from 'framer-motion';
+import { Link } from 'react-router-dom';
 import {
-    Mail,
-    Sparkles,
+    ArrowLeft,
     Send,
-    Copy,
+    Sparkles,
     RefreshCw,
-    User,
-    Building2,
-    Sliders,
+    Copy,
     Check,
-    ChevronRight,
-    Edit3,
-    Eye
+    Paperclip
 } from 'lucide-react';
-import { GlassCard, GlassPanel } from '../components/GlassCard';
-import { NeonButton } from '../components/NeonButton';
-import { Badge } from '../components/Badge';
-import { Avatar } from '../components/Avatar';
-import { TabPanel, TabContent } from '../components/TabPanel';
-import { LoadingPulse } from '../components/Loading';
 
-const toneOptions = [
-    { id: 'professional', label: 'Professional', description: 'Formal and business-appropriate' },
-    { id: 'friendly', label: 'Friendly', description: 'Warm and approachable' },
-    { id: 'empathetic', label: 'Empathetic', description: 'Understanding and considerate' },
-    { id: 'direct', label: 'Direct', description: 'Clear and to the point' },
-];
-
-const sampleRecipient = {
+const recipient = {
     name: 'Dr. Sarah Chen',
-    title: 'Climate Scientist',
-    organization: 'UC Berkeley',
     email: 'sarah.chen@berkeley.edu',
+    role: 'Climate Scientist, UC Berkeley',
+    initials: 'SC',
 };
 
-const generatedEmail = `Dear Dr. Chen,
+const tones = [
+    { id: 'professional', label: 'Professional', desc: 'Formal and respectful' },
+    { id: 'friendly', label: 'Friendly', desc: 'Warm but professional' },
+    { id: 'brief', label: 'Brief', desc: 'Concise and direct' },
+];
+
+const sampleEmail = {
+    subject: 'Interview Request: California Climate Policy Feature',
+    body: `Dear Dr. Chen,
 
 I hope this message finds you well. My name is John Doe, and I'm a journalist working on a feature story about California's evolving climate policy landscape.
 
-Your groundbreaking research on cap-and-trade systems and their economic impacts has been invaluable to my understanding of the subject. I would be honored to include your expert perspective in my upcoming article.
+Your research on the cap-and-trade system has been invaluable to my understanding of this complex topic. Would you be available for a brief 20-30 minute interview within the next two weeks?
 
-Would you be available for a brief 20-30 minute interview in the coming week? I'm flexible with timing and can accommodate your schedule. The interview can be conducted via video call, phone, or in person—whichever works best for you.
-
-Some topics I'd love to discuss include:
-• Your recent findings on emission reduction strategies
-• The effectiveness of current policy frameworks
-• Future outlook for climate legislation in California
-
-I believe your insights would greatly benefit our readers and contribute to a more informed public conversation about climate policy.
-
-Thank you for considering this request. I look forward to the possibility of speaking with you.
+Thank you for considering this request.
 
 Best regards,
-John Doe
-Senior Reporter
-The Daily Chronicle
-john.doe@dailychronicle.com
-(415) 555-0123`;
-
-const tabs = [
-    { id: 'compose', label: 'Compose', icon: Edit3 },
-    { id: 'preview', label: 'Preview', icon: Eye },
-];
+John Doe`
+};
 
 export function EmailOutreach() {
-    const [recipient, setRecipient] = useState(sampleRecipient);
+    const [subject, setSubject] = useState(sampleEmail.subject);
+    const [body, setBody] = useState(sampleEmail.body);
     const [selectedTone, setSelectedTone] = useState('professional');
-    const [purpose, setPurpose] = useState('Request an interview about climate policy research');
     const [isGenerating, setIsGenerating] = useState(false);
-    const [email, setEmail] = useState('');
-    const [activeTab, setActiveTab] = useState('compose');
     const [copied, setCopied] = useState(false);
+    const [purpose, setPurpose] = useState('Request interview for climate policy story');
 
     const handleGenerate = () => {
         setIsGenerating(true);
-        setTimeout(() => {
-            setEmail(generatedEmail);
-            setIsGenerating(false);
-            setActiveTab('preview');
-        }, 2500);
+        setTimeout(() => setIsGenerating(false), 2000);
     };
 
     const handleCopy = () => {
-        navigator.clipboard.writeText(email);
+        navigator.clipboard.writeText(body);
         setCopied(true);
         setTimeout(() => setCopied(false), 2000);
     };
 
     return (
-        <div className="space-y-6">
-            {/* Header */}
-            <div>
-                <h1 className="text-2xl font-display font-bold text-white mb-2">Email Outreach</h1>
-                <p className="text-slate-400">Generate personalized, empathetic outreach emails for your sources</p>
-            </div>
+        <div className="page-container">
+            <Link to="/contacts" style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+                fontSize: '0.8125rem',
+                color: 'var(--gold)',
+                textDecoration: 'none',
+                marginBottom: '2rem'
+            }}>
+                <ArrowLeft style={{ width: '16px', height: '16px' }} />
+                Back to Sources
+            </Link>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                {/* Main content */}
-                <div className="lg:col-span-2 space-y-6">
-                    {/* Recipient card */}
-                    <GlassCard className="p-5">
-                        <div className="flex items-center justify-between mb-4">
-                            <h3 className="font-medium text-white">Recipient</h3>
-                            <NeonButton size="sm" variant="ghost">
-                                Change
-                            </NeonButton>
-                        </div>
-                        <div className="flex items-center gap-4">
-                            <Avatar name={recipient.name} size="lg" />
+            <header className="page-header">
+                <h1 className="text-h1" style={{ marginBottom: '0.5rem' }}>Compose Email</h1>
+                <p className="text-body">Draft personalized outreach with AI assistance</p>
+            </header>
+
+            <div className="grid-main">
+                <div>
+                    {/* Recipient */}
+                    <div className="card" style={{ marginBottom: '1.5rem' }}>
+                        <p className="text-label" style={{ marginBottom: '0.75rem' }}>TO</p>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                            <div className="avatar-lg">{recipient.initials}</div>
                             <div>
-                                <h4 className="font-medium text-white">{recipient.name}</h4>
-                                <p className="text-sm text-slate-400">{recipient.title} at {recipient.organization}</p>
-                                <p className="text-sm text-neon-cyan">{recipient.email}</p>
+                                <p style={{ fontSize: '1rem', fontWeight: 500, color: 'var(--text-primary)', marginBottom: '0.125rem' }}>
+                                    {recipient.name}
+                                </p>
+                                <p className="text-small">{recipient.email}</p>
                             </div>
                         </div>
-                    </GlassCard>
+                    </div>
 
-                    {/* Purpose input */}
-                    <GlassCard className="p-5">
-                        <label className="block font-medium text-white mb-3">
-                            What's the purpose of this email?
-                        </label>
-                        <textarea
+                    {/* Purpose */}
+                    <div style={{ marginBottom: '1.5rem' }}>
+                        <p className="text-label" style={{ marginBottom: '0.625rem' }}>PURPOSE</p>
+                        <input
+                            type="text"
                             value={purpose}
                             onChange={(e) => setPurpose(e.target.value)}
-                            placeholder="E.g., Request an interview about their recent research on..."
-                            className="w-full h-24 px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white placeholder:text-slate-500 focus:border-neon-cyan/50 focus:outline-none resize-none"
+                            placeholder="What's the purpose of this email?"
+                            className="input"
                         />
-                    </GlassCard>
+                    </div>
 
-                    {/* Tone selection */}
-                    <GlassCard className="p-5">
-                        <div className="flex items-center gap-2 mb-4">
-                            <Sliders className="w-5 h-5 text-neon-cyan" />
-                            <h3 className="font-medium text-white">Email Tone</h3>
-                        </div>
-                        <div className="grid grid-cols-2 gap-3">
-                            {toneOptions.map((tone) => (
+                    {/* Tone */}
+                    <div style={{ marginBottom: '1.5rem' }}>
+                        <p className="text-label" style={{ marginBottom: '0.75rem' }}>TONE</p>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.75rem' }}>
+                            {tones.map((tone) => (
                                 <button
                                     key={tone.id}
                                     onClick={() => setSelectedTone(tone.id)}
-                                    className={`p-4 rounded-xl text-left transition-all ${selectedTone === tone.id
-                                            ? 'bg-neon-cyan/10 border border-neon-cyan/50'
-                                            : 'bg-white/5 border border-white/10 hover:border-white/20'
-                                        }`}
+                                    className={`card ${selectedTone === tone.id ? 'card-interactive' : ''}`}
+                                    style={{
+                                        padding: '1rem',
+                                        textAlign: 'left',
+                                        cursor: 'pointer',
+                                        border: selectedTone === tone.id ? '1px solid var(--gold)' : '1px solid var(--border-subtle)',
+                                        background: selectedTone === tone.id ? 'var(--gold-muted)' : 'var(--bg-secondary)'
+                                    }}
                                 >
-                                    <div className="flex items-center justify-between mb-1">
-                                        <span className={`font-medium ${selectedTone === tone.id ? 'text-neon-cyan' : 'text-white'}`}>
-                                            {tone.label}
-                                        </span>
-                                        {selectedTone === tone.id && <Check className="w-4 h-4 text-neon-cyan" />}
-                                    </div>
-                                    <p className="text-sm text-slate-400">{tone.description}</p>
+                                    <p style={{
+                                        fontSize: '0.875rem',
+                                        fontWeight: 500,
+                                        color: selectedTone === tone.id ? 'var(--gold)' : 'var(--text-primary)',
+                                        marginBottom: '0.25rem'
+                                    }}>
+                                        {tone.label}
+                                    </p>
+                                    <p className="text-small">{tone.desc}</p>
                                 </button>
                             ))}
                         </div>
-                    </GlassCard>
+                    </div>
 
-                    {/* Generate button */}
-                    <NeonButton
-                        variant="primary"
-                        size="lg"
-                        icon={Sparkles}
-                        className="w-full"
+                    {/* Generate */}
+                    <button
                         onClick={handleGenerate}
-                        loading={isGenerating}
+                        disabled={isGenerating}
+                        className="btn btn-primary"
+                        style={{ width: '100%', padding: '0.875rem', marginBottom: '1.5rem' }}
                     >
-                        Generate Email with AI
-                    </NeonButton>
+                        {isGenerating ? (
+                            <>
+                                <RefreshCw style={{ width: '18px', height: '18px', animation: 'spin 1s linear infinite' }} />
+                                Generating...
+                            </>
+                        ) : (
+                            <>
+                                <Sparkles style={{ width: '18px', height: '18px' }} />
+                                Generate Email
+                            </>
+                        )}
+                    </button>
 
-                    {/* Generated email */}
-                    {isGenerating && (
-                        <GlassCard className="p-8">
-                            <LoadingPulse />
-                            <p className="text-center text-sm text-slate-400 mt-4">
-                                Crafting a personalized email based on contact profile and context...
-                            </p>
-                        </GlassCard>
-                    )}
+                    {/* Email Editor */}
+                    <div className="panel">
+                        <div style={{ marginBottom: '1.5rem', paddingBottom: '1rem', borderBottom: '1px solid var(--border-subtle)' }}>
+                            <p className="text-label" style={{ marginBottom: '0.5rem' }}>Subject</p>
+                            <input
+                                type="text"
+                                value={subject}
+                                onChange={(e) => setSubject(e.target.value)}
+                                style={{
+                                    width: '100%',
+                                    fontSize: '1.125rem',
+                                    fontWeight: 500,
+                                    color: 'var(--text-primary)',
+                                    background: 'transparent',
+                                    border: 'none',
+                                    outline: 'none'
+                                }}
+                            />
+                        </div>
 
-                    {email && !isGenerating && (
-                        <motion.div
-                            initial={{ opacity: 0, y: 20 }}
-                            animate={{ opacity: 1, y: 0 }}
-                        >
-                            <GlassCard className="p-5">
-                                <div className="flex items-center justify-between mb-4">
-                                    <TabPanel tabs={tabs} activeTab={activeTab} onChange={setActiveTab} />
-                                    <div className="flex items-center gap-2">
-                                        <NeonButton size="sm" variant="ghost" icon={RefreshCw} onClick={handleGenerate}>
-                                            Regenerate
-                                        </NeonButton>
-                                        <NeonButton
-                                            size="sm"
-                                            variant="ghost"
-                                            icon={copied ? Check : Copy}
-                                            onClick={handleCopy}
-                                        >
-                                            {copied ? 'Copied!' : 'Copy'}
-                                        </NeonButton>
-                                    </div>
-                                </div>
+                        <textarea
+                            value={body}
+                            onChange={(e) => setBody(e.target.value)}
+                            style={{
+                                width: '100%',
+                                minHeight: '280px',
+                                fontSize: '0.9375rem',
+                                lineHeight: 1.7,
+                                color: 'var(--text-secondary)',
+                                background: 'transparent',
+                                border: 'none',
+                                outline: 'none',
+                                resize: 'vertical'
+                            }}
+                        />
+                    </div>
 
-                                <TabContent tabId="compose" activeTab={activeTab}>
-                                    <textarea
-                                        value={email}
-                                        onChange={(e) => setEmail(e.target.value)}
-                                        className="w-full h-96 p-4 rounded-xl bg-white/5 border border-white/10 text-slate-300 font-mono text-sm leading-relaxed focus:border-neon-cyan/50 focus:outline-none resize-none"
-                                    />
-                                </TabContent>
-
-                                <TabContent tabId="preview" activeTab={activeTab}>
-                                    <div className="p-6 rounded-xl bg-white/5 border border-white/10">
-                                        <div className="mb-6 pb-4 border-b border-white/10">
-                                            <p className="text-sm text-slate-400 mb-1">To:</p>
-                                            <p className="text-white">{recipient.email}</p>
-                                            <p className="text-sm text-slate-400 mt-3 mb-1">Subject:</p>
-                                            <p className="text-white">Interview Request: California Climate Policy Feature</p>
-                                        </div>
-                                        <div className="text-slate-300 whitespace-pre-line leading-relaxed">
-                                            {email}
-                                        </div>
-                                    </div>
-                                </TabContent>
-
-                                <div className="flex gap-3 mt-4 pt-4 border-t border-white/5">
-                                    <NeonButton variant="primary" icon={Send} className="flex-1">
-                                        Send Email
-                                    </NeonButton>
-                                    <NeonButton variant="default">
-                                        Save as Draft
-                                    </NeonButton>
-                                </div>
-                            </GlassCard>
-                        </motion.div>
-                    )}
+                    {/* Actions */}
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '1.5rem' }}>
+                        <div style={{ display: 'flex', gap: '0.5rem' }}>
+                            <button className="btn btn-ghost"><Paperclip style={{ width: '16px', height: '16px' }} /></button>
+                            <button className="btn btn-secondary" onClick={handleCopy}>
+                                {copied ? <Check style={{ width: '16px', height: '16px' }} /> : <Copy style={{ width: '16px', height: '16px' }} />}
+                                {copied ? 'Copied' : 'Copy'}
+                            </button>
+                            <button className="btn btn-secondary" onClick={handleGenerate}>
+                                <RefreshCw style={{ width: '16px', height: '16px' }} />
+                                Regenerate
+                            </button>
+                        </div>
+                        <button className="btn btn-primary">
+                            <Send style={{ width: '16px', height: '16px' }} />
+                            Send Email
+                        </button>
+                    </div>
                 </div>
 
                 {/* Sidebar */}
-                <div className="space-y-4">
-                    {/* Tips */}
-                    <GlassCard className="p-5 border-neon-cyan/20" glow>
-                        <div className="flex items-center gap-2 mb-4">
-                            <Sparkles className="w-5 h-5 text-neon-cyan" />
-                            <h3 className="font-medium text-white">AI Tips</h3>
+                <div className="grid-sidebar">
+                    <div className="panel panel-gold">
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
+                            <Sparkles style={{ width: '16px', height: '16px', color: 'var(--gold)' }} />
+                            <p className="text-label text-gold">AI TIPS</p>
                         </div>
-                        <div className="space-y-3 text-sm text-slate-300">
-                            <div className="flex items-start gap-2">
-                                <ChevronRight className="w-4 h-4 text-neon-cyan mt-0.5 flex-shrink-0" />
-                                <p>Personalize your request based on the contact's recent work</p>
-                            </div>
-                            <div className="flex items-start gap-2">
-                                <ChevronRight className="w-4 h-4 text-neon-cyan mt-0.5 flex-shrink-0" />
-                                <p>Be specific about time commitment and interview format</p>
-                            </div>
-                            <div className="flex items-start gap-2">
-                                <ChevronRight className="w-4 h-4 text-neon-cyan mt-0.5 flex-shrink-0" />
-                                <p>Mention how their expertise relates to your story</p>
-                            </div>
-                        </div>
-                    </GlassCard>
-
-                    {/* Recent emails */}
-                    <GlassCard className="p-5">
-                        <h3 className="font-medium text-white mb-4">Recent Outreach</h3>
-                        <div className="space-y-3">
+                        <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '0.625rem' }}>
                             {[
-                                { name: 'Mayor Wilson', status: 'replied', time: '2 hours ago' },
-                                { name: 'Lisa Martinez', status: 'sent', time: '1 day ago' },
-                                { name: 'Prof. Thompson', status: 'draft', time: '2 days ago' },
-                            ].map((item, i) => (
-                                <div key={i} className="flex items-center justify-between p-3 rounded-lg bg-white/5">
-                                    <div className="flex items-center gap-3">
-                                        <Avatar name={item.name} size="sm" />
-                                        <span className="text-sm text-white">{item.name}</span>
-                                    </div>
-                                    <Badge
-                                        variant={item.status === 'replied' ? 'success' : item.status === 'sent' ? 'cyan' : 'default'}
-                                        size="sm"
-                                    >
-                                        {item.status}
-                                    </Badge>
-                                </div>
+                                'Mention specific work to show familiarity',
+                                'Keep the request clear and concise',
+                                'Offer flexible scheduling options'
+                            ].map((tip, i) => (
+                                <li key={i} style={{ display: 'flex', gap: '0.625rem' }}>
+                                    <span style={{ color: 'var(--gold)' }}>•</span>
+                                    <span className="text-small" style={{ color: 'var(--text-secondary)' }}>{tip}</span>
+                                </li>
                             ))}
-                        </div>
-                    </GlassCard>
+                        </ul>
+                    </div>
 
-                    {/* Templates */}
-                    <GlassCard className="p-5">
-                        <h3 className="font-medium text-white mb-4">Email Templates</h3>
-                        <div className="space-y-2">
-                            {['Interview Request', 'Follow-up', 'Thank You', 'Introduction'].map((template) => (
-                                <button
-                                    key={template}
-                                    className="w-full p-3 text-left text-sm text-slate-300 rounded-lg bg-white/5 hover:bg-white/10 transition-colors"
-                                >
-                                    {template}
-                                </button>
-                            ))}
+                    <div className="card">
+                        <p className="text-label" style={{ marginBottom: '1rem' }}>CONTEXT</p>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                            <div style={{ padding: '0.75rem', background: 'var(--bg-tertiary)', borderRadius: '8px' }}>
+                                <p className="text-small text-muted" style={{ marginBottom: '0.25rem' }}>Story</p>
+                                <p className="text-small" style={{ color: 'var(--text-primary)' }}>Climate Policy Reform</p>
+                            </div>
+                            <div style={{ padding: '0.75rem', background: 'var(--bg-tertiary)', borderRadius: '8px' }}>
+                                <p className="text-small text-muted" style={{ marginBottom: '0.25rem' }}>Research</p>
+                                <p className="text-small" style={{ color: 'var(--text-primary)' }}>AB 32, Cap-and-Trade</p>
+                            </div>
                         </div>
-                    </GlassCard>
+                    </div>
                 </div>
             </div>
         </div>

@@ -1,71 +1,93 @@
 import { Outlet } from 'react-router-dom';
-import { motion } from 'framer-motion';
 import { Sidebar } from '../components/Sidebar';
-import { SearchBar } from '../components/SearchBar';
-import { Avatar } from '../components/Avatar';
-import { Bell, Settings } from 'lucide-react';
+import { Search, Bell, Command } from 'lucide-react';
+import { useState } from 'react';
 
 export function MainLayout() {
-    const handleSearch = (query) => {
-        console.log('Search:', query);
-        // TODO: Implement global search
-    };
+    const [searchFocused, setSearchFocused] = useState(false);
 
     return (
-        <div className="flex h-screen overflow-hidden bg-midnight">
+        <div style={{ display: 'flex', height: '100vh', background: 'var(--bg-primary)' }}>
             {/* Sidebar */}
             <Sidebar />
 
-            {/* Main content area */}
-            <div className="flex-1 flex flex-col overflow-hidden">
+            {/* Main content */}
+            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, overflow: 'hidden' }}>
                 {/* Header */}
-                <header className="flex items-center justify-between px-6 py-4 border-b border-white/5 bg-midnight/50 backdrop-blur-xl">
-                    {/* Search */}
-                    <SearchBar onSearch={handleSearch} />
-
-                    {/* Header actions */}
-                    <div className="flex items-center gap-4">
-                        {/* Notifications */}
-                        <button className="relative p-2 rounded-xl hover:bg-white/5 text-slate-400 hover:text-white transition-colors">
-                            <Bell className="w-5 h-5" />
-                            <span className="absolute top-1 right-1 w-2 h-2 bg-electric-magenta rounded-full" />
-                        </button>
-
-                        {/* Settings */}
-                        <button className="p-2 rounded-xl hover:bg-white/5 text-slate-400 hover:text-white transition-colors">
-                            <Settings className="w-5 h-5" />
-                        </button>
-
-                        {/* User avatar */}
-                        <div className="flex items-center gap-3 pl-4 border-l border-white/10">
-                            <Avatar name="John Doe" showStatus status="online" />
-                            <div className="hidden lg:block">
-                                <p className="text-sm font-medium text-white">John Doe</p>
-                                <p className="text-xs text-slate-400">Reporter</p>
+                <header style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    padding: '1rem 2rem',
+                    borderBottom: '1px solid var(--border-subtle)',
+                    background: 'var(--bg-primary)',
+                    flexShrink: 0
+                }}>
+                    {/* Search Bar */}
+                    <div style={{ flex: 1, maxWidth: '560px' }}>
+                        <div style={{ position: 'relative' }}>
+                            <Search style={{
+                                position: 'absolute',
+                                left: '1rem',
+                                top: '50%',
+                                transform: 'translateY(-50%)',
+                                width: '18px',
+                                height: '18px',
+                                color: searchFocused ? 'var(--gold)' : 'var(--text-dim)'
+                            }} />
+                            <input
+                                type="text"
+                                placeholder="Search or enter command..."
+                                onFocus={() => setSearchFocused(true)}
+                                onBlur={() => setSearchFocused(false)}
+                                className="input-lg"
+                                style={{
+                                    width: '100%',
+                                    paddingLeft: '3rem',
+                                    paddingRight: '4rem'
+                                }}
+                            />
+                            <div style={{
+                                position: 'absolute',
+                                right: '0.75rem',
+                                top: '50%',
+                                transform: 'translateY(-50%)',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '0.25rem',
+                                padding: '0.25rem 0.5rem',
+                                borderRadius: '6px',
+                                background: 'var(--bg-elevated)'
+                            }}>
+                                <Command style={{ width: '12px', height: '12px', color: 'var(--text-dim)' }} />
+                                <span style={{ fontSize: '0.625rem', color: 'var(--text-dim)', fontWeight: 600 }}>K</span>
                             </div>
                         </div>
                     </div>
+
+                    {/* Right Actions */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginLeft: '2rem' }}>
+                        <button className="btn-ghost" style={{ position: 'relative' }}>
+                            <Bell style={{ width: '20px', height: '20px' }} />
+                            <span style={{
+                                position: 'absolute',
+                                top: '4px',
+                                right: '4px',
+                                width: '8px',
+                                height: '8px',
+                                background: 'var(--gold)',
+                                borderRadius: '50%'
+                            }} />
+                        </button>
+
+                        <div className="avatar">JD</div>
+                    </div>
                 </header>
 
-                {/* Page content */}
-                <main className="flex-1 overflow-y-auto">
-                    <motion.div
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.4 }}
-                        className="p-6"
-                    >
-                        <Outlet />
-                    </motion.div>
+                {/* Page Content */}
+                <main style={{ flex: 1, overflowY: 'auto' }}>
+                    <Outlet />
                 </main>
-            </div>
-
-            {/* Background effects */}
-            <div className="fixed inset-0 pointer-events-none">
-                {/* Top-right glow */}
-                <div className="absolute top-0 right-0 w-96 h-96 bg-neon-cyan/5 rounded-full blur-3xl" />
-                {/* Bottom-left glow */}
-                <div className="absolute bottom-0 left-0 w-96 h-96 bg-electric-magenta/5 rounded-full blur-3xl" />
             </div>
         </div>
     );

@@ -1,283 +1,223 @@
+import { useState } from 'react';
 import { motion } from 'framer-motion';
+import { Link } from 'react-router-dom';
 import {
-    Search,
-    Users,
-    Mail,
+    Plus,
+    Clock,
     FileText,
+    Calendar,
     Sparkles,
     ArrowRight,
-    TrendingUp,
-    Clock,
-    Target,
-    Zap
+    Edit,
+    Upload,
+    MessageSquare
 } from 'lucide-react';
-import { Link } from 'react-router-dom';
-import { GlassCard } from '../components/GlassCard';
-import { NeonButton } from '../components/NeonButton';
-import { Badge, StatusBadge } from '../components/Badge';
-import { Avatar, AvatarGroup } from '../components/Avatar';
 
-// Sample data for dashboard
-const activeStories = [
-    {
-        id: 1,
-        title: 'Climate Policy Reform in California',
-        status: 'processing',
-        progress: 65,
-        contacts: 4,
-        lastUpdated: '2 hours ago',
-    },
-    {
-        id: 2,
-        title: 'Tech Industry Layoffs Analysis',
-        status: 'active',
-        progress: 35,
-        contacts: 2,
-        lastUpdated: '5 hours ago',
-    },
-    {
-        id: 3,
-        title: 'Local Housing Crisis Investigation',
-        status: 'draft',
-        progress: 10,
-        contacts: 0,
-        lastUpdated: '1 day ago',
-    },
+const currentStory = {
+    title: 'Climate Policy Reform in California',
+    subtitle: 'Investigating the impact of AB 32 on local communities and industries',
+    status: 'In Progress',
+    progress: 65,
+    lastUpdated: '2 hours ago',
+};
+
+const storyElements = [
+    { title: 'Background Research', status: 'complete', count: 12 },
+    { title: 'Sources Identified', status: 'active', count: 4 },
+    { title: 'Interviews Scheduled', status: 'pending', count: 2 },
+    { title: 'Article Draft', status: 'pending', count: 0 },
+];
+
+const sources = [
+    { name: 'Dr. Sarah Chen', role: 'Climate Scientist', org: 'UC Berkeley', initials: 'SC' },
+    { name: 'Mayor James Wilson', role: 'Mayor', org: 'City of Oakland', initials: 'JW' },
+    { name: 'Lisa Martinez', role: 'Community Organizer', org: 'Bay Area Coalition', initials: 'LM' },
+];
+
+const aiSuggestions = [
+    'Consider reaching out to state legislators for policy perspective',
+    'EPA released new report yesterday that may be relevant',
 ];
 
 const quickActions = [
-    {
-        id: 'research',
-        label: 'Start Research',
-        icon: Search,
-        path: '/research',
-        color: 'from-neon-cyan to-blue-500',
-        description: 'AI-powered topic research'
-    },
-    {
-        id: 'contacts',
-        label: 'Find Contacts',
-        icon: Users,
-        path: '/contacts',
-        color: 'from-electric-magenta to-purple-500',
-        description: 'Discover relevant sources'
-    },
-    {
-        id: 'email',
-        label: 'Draft Outreach',
-        icon: Mail,
-        path: '/email',
-        color: 'from-amber-400 to-orange-500',
-        description: 'Generate outreach emails'
-    },
-    {
-        id: 'article',
-        label: 'Write Article',
-        icon: FileText,
-        path: '/drafts',
-        color: 'from-emerald-400 to-teal-500',
-        description: 'AI-assisted drafting'
-    },
-];
-
-const stats = [
-    { label: 'Active Stories', value: '12', change: '+3', icon: FileText },
-    { label: 'Contacts', value: '47', change: '+8', icon: Users },
-    { label: 'Interviews', value: '23', change: '+2', icon: Target },
-    { label: 'Published', value: '8', change: '+1', icon: Zap },
+    { icon: Edit, label: 'Add Note' },
+    { icon: Upload, label: 'Import' },
+    { icon: Calendar, label: 'Schedule' },
+    { icon: FileText, label: 'Report' },
 ];
 
 export function Dashboard() {
     return (
-        <div className="space-y-8">
-            {/* Welcome header */}
-            <div className="flex items-start justify-between">
-                <div>
-                    <motion.h1
-                        initial={{ opacity: 0, y: -20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        className="text-3xl font-display font-bold text-white mb-2"
-                    >
-                        Good evening, John
-                    </motion.h1>
-                    <p className="text-slate-400">
-                        You have <span className="text-neon-cyan">3 active stories</span> in progress.
-                        Keep up the great work!
-                    </p>
+        <div className="page-container">
+            {/* Page Header */}
+            <header className="page-header">
+                <p className="text-label" style={{ marginBottom: '1rem' }}>CURRENT STORY</p>
+                <h1 className="text-display" style={{ marginBottom: '0.75rem' }}>{currentStory.title}</h1>
+                <p className="text-body" style={{ marginBottom: '2rem', maxWidth: '600px' }}>{currentStory.subtitle}</p>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem', marginBottom: '1.5rem' }}>
+                    <span className="badge badge-gold">{currentStory.status}</span>
+                    <span className="text-small" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <Clock style={{ width: '14px', height: '14px' }} />
+                        Updated {currentStory.lastUpdated}
+                    </span>
                 </div>
-                <NeonButton variant="primary" icon={Sparkles}>
-                    New Story
-                </NeonButton>
-            </div>
 
-            {/* Stats grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                {stats.map((stat, index) => (
-                    <motion.div
-                        key={stat.label}
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: index * 0.1 }}
-                    >
-                        <GlassCard className="p-5">
-                            <div className="flex items-start justify-between mb-4">
-                                <div className="p-2.5 rounded-xl bg-white/5">
-                                    <stat.icon className="w-5 h-5 text-neon-cyan" />
-                                </div>
-                                <span className="flex items-center gap-1 text-xs text-emerald-400">
-                                    <TrendingUp className="w-3 h-3" />
-                                    {stat.change}
-                                </span>
-                            </div>
-                            <p className="text-2xl font-display font-bold text-white mb-1">
-                                {stat.value}
-                            </p>
-                            <p className="text-sm text-slate-400">{stat.label}</p>
-                        </GlassCard>
-                    </motion.div>
-                ))}
-            </div>
-
-            {/* Quick actions */}
-            <div>
-                <h2 className="text-lg font-display font-semibold text-white mb-4">Quick Actions</h2>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                    {quickActions.map((action, index) => (
-                        <motion.div
-                            key={action.id}
-                            initial={{ opacity: 0, scale: 0.95 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            transition={{ delay: 0.2 + index * 0.1 }}
-                        >
-                            <Link to={action.path}>
-                                <GlassCard className="p-5 group cursor-pointer">
-                                    <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${action.color} flex items-center justify-center mb-4 group-hover:scale-110 transition-transform`}>
-                                        <action.icon className="w-6 h-6 text-white" />
-                                    </div>
-                                    <h3 className="font-medium text-white mb-1 group-hover:text-neon-cyan transition-colors">
-                                        {action.label}
-                                    </h3>
-                                    <p className="text-sm text-slate-400">{action.description}</p>
-                                    <ArrowRight className="w-4 h-4 text-slate-500 mt-3 group-hover:translate-x-1 group-hover:text-neon-cyan transition-all" />
-                                </GlassCard>
-                            </Link>
-                        </motion.div>
-                    ))}
-                </div>
-            </div>
-
-            {/* Active stories */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                {/* Stories list */}
-                <div className="lg:col-span-2">
-                    <div className="flex items-center justify-between mb-4">
-                        <h2 className="text-lg font-display font-semibold text-white">Active Stories</h2>
-                        <Link to="/drafts" className="text-sm text-neon-cyan hover:underline">View all</Link>
+                <div style={{ maxWidth: '500px' }}>
+                    <div className="progress-bar" style={{ marginBottom: '0.5rem' }}>
+                        <div className="progress-fill" style={{ width: `${currentStory.progress}%` }} />
                     </div>
-                    <div className="space-y-4">
-                        {activeStories.map((story, index) => (
-                            <motion.div
-                                key={story.id}
-                                initial={{ opacity: 0, x: -20 }}
-                                animate={{ opacity: 1, x: 0 }}
-                                transition={{ delay: 0.3 + index * 0.1 }}
-                            >
-                                <GlassCard className="p-5">
-                                    <div className="flex items-start justify-between mb-3">
-                                        <div>
-                                            <h3 className="font-medium text-white mb-1">{story.title}</h3>
-                                            <div className="flex items-center gap-3 text-sm text-slate-400">
-                                                <span className="flex items-center gap-1">
-                                                    <Users className="w-3.5 h-3.5" />
-                                                    {story.contacts} contacts
-                                                </span>
-                                                <span className="flex items-center gap-1">
-                                                    <Clock className="w-3.5 h-3.5" />
-                                                    {story.lastUpdated}
-                                                </span>
-                                            </div>
-                                        </div>
-                                        <StatusBadge status={story.status} />
-                                    </div>
-
-                                    {/* Progress bar */}
-                                    <div className="relative h-2 bg-white/10 rounded-full overflow-hidden">
-                                        <motion.div
-                                            initial={{ width: 0 }}
-                                            animate={{ width: `${story.progress}%` }}
-                                            transition={{ duration: 1, delay: 0.5 + index * 0.1 }}
-                                            className="absolute inset-y-0 left-0 bg-gradient-to-r from-neon-cyan to-electric-magenta rounded-full"
-                                            style={{ boxShadow: '0 0 10px rgba(0, 245, 255, 0.5)' }}
-                                        />
-                                    </div>
-                                    <div className="flex items-center justify-between mt-2">
-                                        <span className="text-xs text-slate-500">{story.progress}% complete</span>
-                                        <NeonButton size="sm" variant="ghost">
-                                            Continue <ArrowRight className="w-3 h-3 ml-1" />
-                                        </NeonButton>
-                                    </div>
-                                </GlassCard>
-                            </motion.div>
-                        ))}
+                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <span className="text-small">Research</span>
+                        <span className="text-small text-gold" style={{ fontWeight: 600 }}>{currentStory.progress}%</span>
+                        <span className="text-small">Published</span>
                     </div>
                 </div>
+            </header>
 
-                {/* AI Assistant panel */}
+            {/* Main Grid */}
+            <div className="grid-main">
+                {/* Left Content */}
                 <div>
-                    <h2 className="text-lg font-display font-semibold text-white mb-4">AI Assistant</h2>
-                    <GlassCard className="p-5 border-neon-cyan/20" glow>
-                        <div className="flex items-center gap-3 mb-4">
-                            <div className="relative">
-                                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-neon-cyan to-electric-magenta flex items-center justify-center">
-                                    <Sparkles className="w-6 h-6 text-white" />
-                                </div>
-                                <div className="absolute -inset-1 bg-gradient-to-br from-neon-cyan to-electric-magenta rounded-xl blur opacity-30 animate-pulse" />
-                            </div>
-                            <div>
-                                <h3 className="font-medium text-white">Aurora</h3>
-                                <p className="text-xs text-slate-400">Your AI journalism assistant</p>
-                            </div>
-                        </div>
+                    {/* Story Elements */}
+                    <section className="section">
+                        <h2 className="text-h3" style={{ marginBottom: '1.5rem' }}>Story Elements</h2>
 
-                        <div className="space-y-3 mb-4">
-                            <div className="p-3 rounded-lg bg-white/5 border border-white/10">
-                                <p className="text-sm text-slate-300">
-                                    "I noticed your climate policy story needs more local expert voices.
-                                    Want me to find relevant contacts?"
-                                </p>
-                            </div>
-                        </div>
-
-                        <div className="flex gap-2">
-                            <NeonButton size="sm" variant="primary" className="flex-1">
-                                Find Contacts
-                            </NeonButton>
-                            <NeonButton size="sm" variant="ghost">
-                                Dismiss
-                            </NeonButton>
-                        </div>
-                    </GlassCard>
-
-                    {/* Recent activity */}
-                    <h2 className="text-lg font-display font-semibold text-white mt-6 mb-4">Recent Activity</h2>
-                    <GlassCard className="p-4">
-                        <div className="space-y-4">
-                            {[
-                                { action: 'Research completed', item: 'Climate policy backgrounds', time: '10 min ago' },
-                                { action: 'Email sent to', item: 'Dr. Sarah Chen', time: '1 hour ago' },
-                                { action: 'Interview scheduled', item: 'Mayor Johnson', time: '2 hours ago' },
-                            ].map((activity, i) => (
-                                <div key={i} className="flex items-start gap-3">
-                                    <div className="w-2 h-2 mt-2 rounded-full bg-neon-cyan" />
-                                    <div className="flex-1 min-w-0">
-                                        <p className="text-sm text-white truncate">{activity.action}</p>
-                                        <p className="text-xs text-slate-400">{activity.item}</p>
+                        <div className="timeline">
+                            {storyElements.map((item, i) => (
+                                <div key={i} className="timeline-item">
+                                    <div className={`timeline-dot ${item.status === 'complete' ? 'complete' : ''}`}
+                                        style={item.status === 'active' ? { background: 'var(--gold)', boxShadow: '0 0 8px rgba(212, 168, 83, 0.5)' } : {}} />
+                                    <div>
+                                        <p style={{
+                                            fontSize: '1rem',
+                                            fontWeight: 500,
+                                            color: item.status === 'active' ? 'var(--gold)' : 'var(--text-primary)',
+                                            marginBottom: '0.25rem'
+                                        }}>
+                                            {item.title}
+                                        </p>
+                                        <p className="text-small">{item.count} items</p>
                                     </div>
-                                    <span className="text-xs text-slate-500 whitespace-nowrap">{activity.time}</span>
                                 </div>
                             ))}
                         </div>
-                    </GlassCard>
+                    </section>
+
+                    {/* Sources */}
+                    <section className="section">
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+                            <h2 className="text-h3">Sources</h2>
+                            <Link to="/contacts" className="text-small text-gold" style={{ textDecoration: 'none' }}>
+                                View all →
+                            </Link>
+                        </div>
+
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                            {sources.map((source, i) => (
+                                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                                    <div className="avatar">{source.initials}</div>
+                                    <div>
+                                        <p style={{ fontSize: '0.9375rem', fontWeight: 500, color: 'var(--text-primary)', marginBottom: '0.125rem' }}>
+                                            {source.name}
+                                        </p>
+                                        <p className="text-small">{source.role}, {source.org}</p>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </section>
+
+                    {/* Story Overview Panel */}
+                    <section className="panel" style={{ marginTop: '2rem' }}>
+                        <p className="text-label">STORY OVERVIEW</p>
+
+                        <div style={{
+                            aspectRatio: '16/9',
+                            background: 'var(--bg-tertiary)',
+                            borderRadius: '12px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            marginTop: '1rem'
+                        }}>
+                            <span className="text-small">Story visualization</span>
+                        </div>
+
+                        <p className="text-body" style={{ marginTop: '1.5rem' }}>
+                            Investigating the impact of California's climate policy, specifically AB 32
+                            and the cap-and-trade system, on local communities and industries.
+                        </p>
+
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', marginTop: '1.5rem' }}>
+                            <div>
+                                <p className="text-label" style={{ marginBottom: '0.5rem' }}>Key Entities</p>
+                                <p className="text-small" style={{ color: 'var(--text-secondary)' }}>CARB, UC Berkeley, City of Oakland</p>
+                            </div>
+                            <div>
+                                <p className="text-label" style={{ marginBottom: '0.5rem' }}>Topics</p>
+                                <p className="text-small" style={{ color: 'var(--text-secondary)' }}>Climate Policy, Cap-and-Trade</p>
+                            </div>
+                        </div>
+                    </section>
+                </div>
+
+                {/* Right Sidebar */}
+                <div className="grid-sidebar">
+                    {/* Quick Actions */}
+                    <div>
+                        <p className="text-label" style={{ marginBottom: '1rem' }}>QUICK ACTIONS</p>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                            {quickActions.map((action, i) => (
+                                <button
+                                    key={i}
+                                    className="card card-interactive"
+                                    style={{ padding: '1rem', display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '0.75rem', cursor: 'pointer', border: '1px solid var(--border-subtle)' }}
+                                >
+                                    <action.icon style={{ width: '16px', height: '16px', color: 'var(--gold)' }} />
+                                    <span className="text-small" style={{ color: 'var(--text-secondary)' }}>{action.label}</span>
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* AI Insights */}
+                    <div className="panel panel-gold">
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
+                            <Sparkles style={{ width: '16px', height: '16px', color: 'var(--gold)' }} />
+                            <p className="text-label text-gold">AI INSIGHTS</p>
+                        </div>
+
+                        <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                            {aiSuggestions.map((item, i) => (
+                                <li key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: '0.75rem' }}>
+                                    <span style={{ color: 'var(--gold)' }}>•</span>
+                                    <span className="text-small" style={{ color: 'var(--text-secondary)' }}>{item}</span>
+                                </li>
+                            ))}
+                        </ul>
+
+                        <button className="text-small text-gold" style={{ marginTop: '1rem', background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                            Ask Auric AI <ArrowRight style={{ width: '12px', height: '12px' }} />
+                        </button>
+                    </div>
+
+                    {/* Timeline */}
+                    <div>
+                        <p className="text-label" style={{ marginBottom: '1rem' }}>TIMELINE</p>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                            {[
+                                { date: 'Dec 10', event: 'Initial research started' },
+                                { date: 'Dec 12', event: 'Dr. Chen interview confirmed' },
+                                { date: 'Dec 15', event: 'Scheduled interview' },
+                            ].map((item, i) => (
+                                <div key={i} style={{ display: 'flex', gap: '1rem' }}>
+                                    <span className="text-mono text-gold" style={{ width: '48px' }}>{item.date}</span>
+                                    <span className="text-small" style={{ color: 'var(--text-secondary)' }}>{item.event}</span>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>

@@ -1,156 +1,264 @@
 import { useState } from 'react';
-import { motion } from 'framer-motion';
+import { Link } from 'react-router-dom';
 import {
-    FileText, Search, Play, Pause, Clock, Quote, Download, Share2,
-    ChevronRight, Sparkles, MessageSquare, User, Flag, Copy, Check
+    FileText,
+    Search,
+    Play,
+    Pause,
+    Clock,
+    Quote,
+    Download,
+    Sparkles,
+    ArrowLeft,
+    Flag,
+    Copy,
+    Check,
+    User
 } from 'lucide-react';
-import { GlassCard, GlassPanel } from '../components/GlassCard';
-import { NeonButton } from '../components/NeonButton';
-import { Badge } from '../components/Badge';
-import { Avatar } from '../components/Avatar';
-import { TabPanel, TabContent } from '../components/TabPanel';
 
 const transcripts = [
-    { id: 1, title: 'Interview with Dr. Sarah Chen', date: '2024-03-10', duration: '28:45', source: 'Dr. Sarah Chen', status: 'complete', highlights: 5 },
-    { id: 2, title: 'City Council Press Briefing', date: '2024-03-08', duration: '42:10', source: 'Mayor Wilson', status: 'processing', highlights: 0 },
+    { id: 1, title: 'Interview with Dr. Sarah Chen', date: 'Dec 10, 2024', duration: '28:45', source: 'Dr. Sarah Chen', highlights: 5 },
+    { id: 2, title: 'City Council Press Briefing', date: 'Dec 8, 2024', duration: '42:10', source: 'Mayor Wilson', highlights: 3 },
 ];
 
 const sampleTranscript = [
-    { time: '00:00', speaker: 'John Doe', text: "Good morning, Dr. Chen. Thank you for taking the time to speak with me today about California's climate policy landscape." },
-    { time: '00:15', speaker: 'Dr. Sarah Chen', text: "Thank you for having me. I'm happy to share my perspective on this important topic.", highlighted: false },
-    { time: '00:25', speaker: 'John Doe', text: "Let's start with cap-and-trade. How would you assess its effectiveness so far?" },
-    { time: '00:35', speaker: 'Dr. Sarah Chen', text: "The cap-and-trade program has been remarkably successful in reducing emissions while maintaining economic growth. We've seen a 20% reduction in covered emissions since 2013.", highlighted: true },
-    { time: '01:15', speaker: 'John Doe', text: "That's significant. What do you see as the main challenges going forward?" },
-    { time: '01:25', speaker: 'Dr. Sarah Chen', text: "The biggest challenge is extending these policies to sectors that are harder to decarbonize, like heavy industry and agriculture.", highlighted: true },
-];
-
-const tabs = [
-    { id: 'all', label: 'All Transcripts', badge: 12 },
-    { id: 'recent', label: 'Recent' },
-    { id: 'highlighted', label: 'With Highlights', badge: 8 },
+    { time: '00:00', speaker: 'John Doe', text: "Good morning, Dr. Chen. Thank you for speaking with me today." },
+    { time: '00:15', speaker: 'Dr. Sarah Chen', text: "Thank you for having me. I'm happy to share my perspective." },
+    { time: '00:25', speaker: 'John Doe', text: "Let's start with cap-and-trade. How would you assess its effectiveness?" },
+    { time: '00:35', speaker: 'Dr. Sarah Chen', text: "The cap-and-trade program has been remarkably successful. We've seen a 20% reduction in covered emissions since 2013.", highlighted: true },
+    { time: '01:15', speaker: 'John Doe', text: "That's significant. What do you see as the main challenges?" },
+    { time: '01:25', speaker: 'Dr. Sarah Chen', text: "The biggest challenge is extending these policies to harder sectors like heavy industry.", highlighted: true },
 ];
 
 export function Transcripts() {
-    const [activeTab, setActiveTab] = useState('all');
-    const [selectedTranscript, setSelectedTranscript] = useState(null);
+    const [selected, setSelected] = useState(null);
     const [searchQuery, setSearchQuery] = useState('');
     const [isPlaying, setIsPlaying] = useState(false);
-    const [copied, setCopied] = useState(null);
+    const [copiedIdx, setCopiedIdx] = useState(null);
 
-    const handleCopy = (id, text) => {
+    const handleCopy = (idx, text) => {
         navigator.clipboard.writeText(text);
-        setCopied(id);
-        setTimeout(() => setCopied(null), 2000);
+        setCopiedIdx(idx);
+        setTimeout(() => setCopiedIdx(null), 2000);
     };
 
+    if (selected) {
+        return (
+            <div className="page-container">
+                <button
+                    onClick={() => setSelected(null)}
+                    style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '0.5rem',
+                        fontSize: '0.8125rem',
+                        color: 'var(--gold)',
+                        background: 'none',
+                        border: 'none',
+                        cursor: 'pointer',
+                        marginBottom: '2rem'
+                    }}
+                >
+                    <ArrowLeft style={{ width: '16px', height: '16px' }} />
+                    Back to Transcripts
+                </button>
+
+                <header style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '2rem' }}>
+                    <div>
+                        <h1 className="text-h2" style={{ marginBottom: '0.375rem' }}>{selected.title}</h1>
+                        <p className="text-small">{selected.date} • {selected.duration}</p>
+                    </div>
+                    <button className="btn btn-secondary">
+                        <Download style={{ width: '16px', height: '16px' }} />
+                        Export
+                    </button>
+                </header>
+
+                {/* Player */}
+                <div className="card" style={{ marginBottom: '2rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem' }}>
+                        <button
+                            onClick={() => setIsPlaying(!isPlaying)}
+                            style={{
+                                width: '48px',
+                                height: '48px',
+                                borderRadius: '50%',
+                                background: 'var(--gold)',
+                                border: 'none',
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center'
+                            }}
+                        >
+                            {isPlaying
+                                ? <Pause style={{ width: '20px', height: '20px', color: 'var(--bg-primary)' }} />
+                                : <Play style={{ width: '20px', height: '20px', color: 'var(--bg-primary)', marginLeft: '2px' }} />
+                            }
+                        </button>
+                        <div style={{ flex: 1 }}>
+                            <div className="progress-bar">
+                                <div className="progress-fill" style={{ width: '33%' }} />
+                            </div>
+                        </div>
+                        <span className="text-mono text-muted">09:15 / 28:45</span>
+                    </div>
+                </div>
+
+                {/* Transcript */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                    {sampleTranscript.map((seg, idx) => (
+                        <div
+                            key={idx}
+                            className="card"
+                            style={{
+                                background: seg.highlighted ? 'var(--gold-muted)' : 'var(--bg-secondary)',
+                                borderColor: seg.highlighted ? 'rgba(212, 168, 83, 0.3)' : 'var(--border-subtle)'
+                            }}
+                        >
+                            <div style={{ display: 'flex', gap: '1rem' }}>
+                                <div className="avatar" style={{ width: '40px', height: '40px', fontSize: '0.75rem' }}>
+                                    {seg.speaker.split(' ').map(n => n[0]).join('')}
+                                </div>
+                                <div style={{ flex: 1 }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.5rem' }}>
+                                        <span style={{ fontWeight: 500, color: seg.highlighted ? 'var(--gold)' : 'var(--text-primary)' }}>
+                                            {seg.speaker}
+                                        </span>
+                                        <span className="text-mono text-muted">{seg.time}</span>
+                                        {seg.highlighted && <span className="badge badge-gold">Key Quote</span>}
+                                    </div>
+                                    <p className="text-body">{seg.text}</p>
+                                </div>
+                                <div style={{ display: 'flex', gap: '0.25rem' }}>
+                                    <button className="btn-ghost" onClick={() => handleCopy(idx, seg.text)} style={{ padding: '0.375rem' }}>
+                                        {copiedIdx === idx
+                                            ? <Check style={{ width: '16px', height: '16px', color: 'var(--success)' }} />
+                                            : <Copy style={{ width: '16px', height: '16px' }} />
+                                        }
+                                    </button>
+                                    <button className="btn-ghost" style={{ padding: '0.375rem' }}>
+                                        <Flag style={{ width: '16px', height: '16px' }} />
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            </div>
+        );
+    }
+
     return (
-        <div className="space-y-6">
-            <div>
-                <h1 className="text-2xl font-display font-bold text-white mb-2">Transcripts</h1>
-                <p className="text-slate-400">AI-powered transcription with smart quote highlighting</p>
+        <div className="page-container">
+            <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '2.5rem' }}>
+                <div>
+                    <h1 className="text-h1" style={{ marginBottom: '0.5rem' }}>Transcripts</h1>
+                    <p className="text-body" style={{ maxWidth: '400px' }}>AI-powered transcription with quote highlighting</p>
+                </div>
+                <button className="btn btn-primary">
+                    <Sparkles style={{ width: '16px', height: '16px' }} />
+                    Upload Recording
+                </button>
+            </header>
+
+            <div style={{ position: 'relative', maxWidth: '400px', marginBottom: '2rem' }}>
+                <Search style={{
+                    position: 'absolute',
+                    left: '1rem',
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    width: '18px',
+                    height: '18px',
+                    color: 'var(--text-dim)'
+                }} />
+                <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder="Search transcripts..."
+                    className="input"
+                    style={{ paddingLeft: '3rem' }}
+                />
             </div>
 
-            {!selectedTranscript ? (
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                    <div className="lg:col-span-2 space-y-6">
-                        <GlassCard className="p-4">
-                            <div className="flex gap-4">
-                                <div className="flex-1 relative">
-                                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-                                    <input type="text" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="Search transcripts..." className="w-full pl-12 pr-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white placeholder:text-slate-500 focus:border-neon-cyan/50 focus:outline-none" />
+            <div className="grid-main">
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                    {transcripts.map((t) => (
+                        <button
+                            key={t.id}
+                            onClick={() => setSelected(t)}
+                            className="card card-interactive"
+                            style={{ display: 'flex', gap: '1.25rem', textAlign: 'left', cursor: 'pointer' }}
+                        >
+                            <div style={{
+                                width: '56px',
+                                height: '56px',
+                                borderRadius: '12px',
+                                background: 'var(--bg-tertiary)',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                flexShrink: 0
+                            }}>
+                                <FileText style={{ width: '24px', height: '24px', color: 'var(--text-muted)' }} />
+                            </div>
+                            <div style={{ flex: 1 }}>
+                                <h3 style={{ fontSize: '1rem', fontWeight: 500, color: 'var(--text-primary)', marginBottom: '0.375rem' }}>
+                                    {t.title}
+                                </h3>
+                                <div style={{ display: 'flex', gap: '1.25rem' }}>
+                                    <span className="text-small" style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
+                                        <User style={{ width: '14px', height: '14px' }} /> {t.source}
+                                    </span>
+                                    <span className="text-small" style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
+                                        <Clock style={{ width: '14px', height: '14px' }} /> {t.duration}
+                                    </span>
+                                    <span className="text-small">{t.date}</span>
                                 </div>
-                                <NeonButton variant="primary" icon={Sparkles}>Upload Recording</NeonButton>
                             </div>
-                        </GlassCard>
+                            {t.highlights > 0 && <span className="badge badge-gold">{t.highlights} highlights</span>}
+                        </button>
+                    ))}
+                </div>
 
-                        <TabPanel tabs={tabs} activeTab={activeTab} onChange={setActiveTab} />
-
-                        <div className="space-y-4">
-                            {transcripts.map((t, i) => (
-                                <motion.div key={t.id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.1 }}>
-                                    <GlassCard className="p-5 cursor-pointer" onClick={() => setSelectedTranscript(t)}>
-                                        <div className="flex items-start gap-4">
-                                            <div className="p-3 rounded-xl bg-white/5"><FileText className="w-6 h-6 text-neon-cyan" /></div>
-                                            <div className="flex-1">
-                                                <h3 className="font-medium text-white mb-1">{t.title}</h3>
-                                                <div className="flex items-center gap-4 text-sm text-slate-400">
-                                                    <span className="flex items-center gap-1"><User className="w-4 h-4" />{t.source}</span>
-                                                    <span className="flex items-center gap-1"><Clock className="w-4 h-4" />{t.duration}</span>
-                                                    <span>{t.date}</span>
-                                                </div>
-                                            </div>
-                                            <div className="flex items-center gap-2">
-                                                {t.highlights > 0 && <Badge variant="magenta">{t.highlights} highlights</Badge>}
-                                                <Badge variant={t.status === 'complete' ? 'success' : 'warning'}>{t.status}</Badge>
-                                                <ChevronRight className="w-5 h-5 text-slate-400" />
-                                            </div>
-                                        </div>
-                                    </GlassCard>
-                                </motion.div>
+                <div className="grid-sidebar">
+                    <div className="panel panel-gold">
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
+                            <Quote style={{ width: '16px', height: '16px', color: 'var(--gold)' }} />
+                            <p className="text-label text-gold">RECENT KEY QUOTES</p>
+                        </div>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                            {sampleTranscript.filter(s => s.highlighted).map((s, i) => (
+                                <div key={i} style={{ padding: '0.75rem', background: 'var(--bg-secondary)', borderRadius: '8px', borderLeft: '2px solid var(--gold)' }}>
+                                    <p className="text-small" style={{ fontStyle: 'italic', marginBottom: '0.375rem' }}>
+                                        "{s.text.slice(0, 60)}..."
+                                    </p>
+                                    <p className="text-small text-muted">— {s.speaker}</p>
+                                </div>
                             ))}
                         </div>
                     </div>
 
-                    <div className="space-y-4">
-                        <GlassCard className="p-5 border-neon-cyan/20" glow>
-                            <div className="flex items-center gap-2 mb-4"><Quote className="w-5 h-5 text-neon-cyan" /><h3 className="font-medium text-white">Key Quotes</h3></div>
-                            <div className="space-y-3">
-                                {sampleTranscript.filter(s => s.highlighted).slice(0, 2).map((s, i) => (
-                                    <div key={i} className="p-3 rounded-lg bg-white/5 border-l-2 border-neon-cyan">
-                                        <p className="text-sm text-slate-300 italic">"{s.text.slice(0, 80)}..."</p>
-                                        <p className="text-xs text-slate-500 mt-2">— {s.speaker}</p>
-                                    </div>
-                                ))}
-                            </div>
-                        </GlassCard>
-                    </div>
-                </div>
-            ) : (
-                <div className="space-y-6">
-                    <NeonButton variant="ghost" onClick={() => setSelectedTranscript(null)}>← Back to Transcripts</NeonButton>
-
-                    <GlassCard className="p-6">
-                        <div className="flex items-center justify-between mb-6">
-                            <div>
-                                <h2 className="text-xl font-display font-bold text-white mb-1">{selectedTranscript.title}</h2>
-                                <p className="text-slate-400">{selectedTranscript.date} • {selectedTranscript.duration}</p>
-                            </div>
-                            <div className="flex gap-2">
-                                <NeonButton size="sm" variant="ghost" icon={Download}>Export</NeonButton>
-                                <NeonButton size="sm" variant="ghost" icon={Share2}>Share</NeonButton>
-                            </div>
-                        </div>
-
-                        <div className="flex items-center gap-4 p-4 rounded-xl bg-white/5 mb-6">
-                            <NeonButton variant="primary" icon={isPlaying ? Pause : Play} onClick={() => setIsPlaying(!isPlaying)}>{isPlaying ? 'Pause' : 'Play'}</NeonButton>
-                            <div className="flex-1 h-2 bg-white/10 rounded-full"><div className="w-1/3 h-full bg-gradient-to-r from-neon-cyan to-electric-magenta rounded-full" /></div>
-                            <span className="text-sm text-slate-400">09:15 / 28:45</span>
-                        </div>
-
-                        <div className="space-y-4">
-                            {sampleTranscript.map((segment, i) => (
-                                <motion.div key={i} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: i * 0.05 }} className={`p-4 rounded-xl ${segment.highlighted ? 'bg-neon-cyan/10 border border-neon-cyan/30' : 'bg-white/5'}`}>
-                                    <div className="flex items-start gap-3">
-                                        <Avatar name={segment.speaker} size="sm" />
-                                        <div className="flex-1">
-                                            <div className="flex items-center gap-2 mb-1">
-                                                <span className="font-medium text-white text-sm">{segment.speaker}</span>
-                                                <span className="text-xs text-slate-500">{segment.time}</span>
-                                                {segment.highlighted && <Badge variant="cyan" size="sm">Key Quote</Badge>}
-                                            </div>
-                                            <p className="text-slate-300">{segment.text}</p>
-                                        </div>
-                                        <div className="flex gap-1">
-                                            <button onClick={() => handleCopy(i, segment.text)} className="p-2 text-slate-400 hover:text-white">{copied === i ? <Check className="w-4 h-4 text-neon-cyan" /> : <Copy className="w-4 h-4" />}</button>
-                                            <button className="p-2 text-slate-400 hover:text-amber-400"><Flag className="w-4 h-4" /></button>
-                                        </div>
-                                    </div>
-                                </motion.div>
+                    <div className="card">
+                        <p className="text-label" style={{ marginBottom: '1rem' }}>STATISTICS</p>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                            {[
+                                { label: 'Total transcripts', value: '8' },
+                                { label: 'Total duration', value: '4h 32m' },
+                                { label: 'Key quotes', value: '24', color: 'var(--gold)' },
+                            ].map((stat) => (
+                                <div key={stat.label} style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                    <span className="text-small">{stat.label}</span>
+                                    <span style={{ fontSize: '0.875rem', fontWeight: 500, color: stat.color || 'var(--text-primary)' }}>
+                                        {stat.value}
+                                    </span>
+                                </div>
                             ))}
                         </div>
-                    </GlassCard>
+                    </div>
                 </div>
-            )}
+            </div>
         </div>
     );
 }

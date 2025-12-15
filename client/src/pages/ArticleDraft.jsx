@@ -1,58 +1,44 @@
 import { useState } from 'react';
-import { motion } from 'framer-motion';
 import {
-    FileText, Sparkles, RefreshCw, Save, Download, Eye, Edit3,
-    ChevronRight, AlertTriangle, CheckCircle, List, BookOpen
+    Sparkles,
+    RefreshCw,
+    Save,
+    Download,
+    Eye,
+    Edit,
+    CheckCircle,
+    AlertTriangle,
+    List,
+    BookOpen
 } from 'lucide-react';
-import { GlassCard, GlassPanel } from '../components/GlassCard';
-import { NeonButton } from '../components/NeonButton';
-import { Badge } from '../components/Badge';
-import { LoadingPulse } from '../components/Loading';
-import { TabPanel, TabContent } from '../components/TabPanel';
 
 const stories = [
-    { id: 1, title: 'Climate Policy Reform in California', status: 'draft', progress: 65, lastUpdated: '2 hours ago' },
-    { id: 2, title: 'Tech Industry Layoffs Analysis', status: 'outline', progress: 25, lastUpdated: '1 day ago' },
+    { id: 1, title: 'Climate Policy Reform', status: 'draft', progress: 65 },
+    { id: 2, title: 'Tech Layoffs Analysis', status: 'outline', progress: 25 },
 ];
 
-const sampleDraft = `# California's Bold Climate Agenda: A Deep Dive into Policy Reform
+const sampleDraft = `# California's Bold Climate Agenda
 
-California has long positioned itself as a leader in environmental policy, and its latest climate initiatives represent the most ambitious push yet to address the global warming crisis.
+California has long positioned itself as a leader in environmental policy.
 
 ## The Cap-and-Trade Success Story
 
-According to Dr. Sarah Chen, a climate scientist at UC Berkeley, "The cap-and-trade program has been remarkably successful in reducing emissions while maintaining economic growth. We've seen a 20% reduction in covered emissions since 2013."
-
-This market-based approach has generated over $15 billion in revenue since its inception, funding everything from public transit to wildfire prevention.
+According to Dr. Sarah Chen, "The cap-and-trade program has been remarkably successful. We've seen a 20% reduction in covered emissions since 2013."
 
 ## Community Impact
 
-But success at the policy level doesn't always translate to success on the ground. Local communities, particularly in disadvantaged areas, have expressed concerns about the uneven distribution of environmental benefits.
-
-"We need policies that don't just reduce overall emissions, but specifically target pollution in communities that have borne the brunt of industrial activity," says community organizer Lisa Martinez.
-
-## Looking Ahead
-
-As California pushes toward its 2030 goals—a 40% reduction below 1990 levels—the question remains: can policy innovation keep pace with the urgency of the climate crisis?`;
+But success at the policy level doesn't always translate to success on the ground.`;
 
 const factChecks = [
-    { id: 1, claim: '20% reduction in covered emissions since 2013', status: 'verified', source: 'CARB 2023 Report' },
-    { id: 2, claim: '$15 billion in revenue', status: 'needs_review', source: 'Pending verification' },
-    { id: 3, claim: '40% reduction target by 2030', status: 'verified', source: 'AB 32 Amendment' },
+    { claim: '20% reduction since 2013', status: 'verified', source: 'CARB Report' },
+    { claim: '$15 billion in revenue', status: 'pending', source: 'Pending verification' },
 ];
 
 const outline = [
-    { id: 1, section: 'Introduction', status: 'complete' },
-    { id: 2, section: 'Cap-and-Trade Analysis', status: 'complete' },
-    { id: 3, section: 'Community Impact', status: 'in_progress' },
-    { id: 4, section: 'Future Outlook', status: 'pending' },
-    { id: 5, section: 'Conclusion', status: 'pending' },
-];
-
-const tabs = [
-    { id: 'editor', label: 'Editor', icon: Edit3 },
-    { id: 'preview', label: 'Preview', icon: Eye },
-    { id: 'outline', label: 'Outline', icon: List },
+    { section: 'Introduction', status: 'complete' },
+    { section: 'Cap-and-Trade', status: 'complete' },
+    { section: 'Community Impact', status: 'in_progress' },
+    { section: 'Conclusion', status: 'pending' },
 ];
 
 export function ArticleDraft() {
@@ -61,115 +47,179 @@ export function ArticleDraft() {
     const [isGenerating, setIsGenerating] = useState(false);
     const [selectedStory, setSelectedStory] = useState(stories[0]);
 
-    const handleGenerate = () => {
-        setIsGenerating(true);
-        setTimeout(() => { setIsGenerating(false); setContent(sampleDraft); }, 2500);
-    };
-
     return (
-        <div className="space-y-6">
-            <div className="flex items-start justify-between">
+        <div className="page-container">
+            <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '2.5rem' }}>
                 <div>
-                    <h1 className="text-2xl font-display font-bold text-white mb-2">Article Drafting</h1>
-                    <p className="text-slate-400">AI-assisted article drafting from research and interviews</p>
+                    <h1 className="text-h1" style={{ marginBottom: '0.5rem' }}>Article Drafting</h1>
+                    <p className="text-body">AI-assisted drafting from research and interviews</p>
                 </div>
-                <NeonButton variant="primary" icon={Sparkles}>New Draft</NeonButton>
-            </div>
+                <button className="btn btn-primary">
+                    <Sparkles style={{ width: '16px', height: '16px' }} />
+                    New Draft
+                </button>
+            </header>
 
-            <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-                {/* Story selector sidebar */}
-                <div className="space-y-4">
-                    <GlassCard className="p-4">
-                        <h3 className="font-medium text-white mb-3">Your Stories</h3>
-                        {stories.map(story => (
-                            <button key={story.id} onClick={() => setSelectedStory(story)} className={`w-full p-3 rounded-lg text-left mb-2 transition-all ${selectedStory.id === story.id ? 'bg-neon-cyan/10 border border-neon-cyan/30' : 'bg-white/5 hover:bg-white/10'}`}>
-                                <p className="font-medium text-white text-sm mb-1">{story.title}</p>
-                                <div className="flex items-center gap-2">
-                                    <Badge variant={story.status === 'draft' ? 'cyan' : 'default'} size="sm">{story.status}</Badge>
-                                    <span className="text-xs text-slate-500">{story.progress}%</span>
+            <div style={{ display: 'grid', gridTemplateColumns: '180px 1fr 280px', gap: '2rem' }}>
+                {/* Stories */}
+                <div>
+                    <p className="text-label" style={{ marginBottom: '1rem' }}>STORIES</p>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                        {stories.map((s) => (
+                            <button
+                                key={s.id}
+                                onClick={() => setSelectedStory(s)}
+                                className="card"
+                                style={{
+                                    padding: '1rem',
+                                    textAlign: 'left',
+                                    cursor: 'pointer',
+                                    borderColor: selectedStory.id === s.id ? 'var(--gold)' : 'var(--border-subtle)',
+                                    background: selectedStory.id === s.id ? 'var(--gold-muted)' : 'var(--bg-secondary)'
+                                }}
+                            >
+                                <p style={{ fontSize: '0.875rem', fontWeight: 500, color: selectedStory.id === s.id ? 'var(--gold)' : 'var(--text-primary)', marginBottom: '0.5rem' }}>
+                                    {s.title}
+                                </p>
+                                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                    <span className={`badge ${s.status === 'draft' ? 'badge-gold' : ''}`}>{s.status}</span>
+                                    <span className="text-small">{s.progress}%</span>
                                 </div>
                             </button>
                         ))}
-                    </GlassCard>
+                    </div>
                 </div>
 
-                {/* Main editor */}
-                <div className="lg:col-span-2 space-y-4">
-                    <GlassCard className="p-4">
-                        <div className="flex items-center justify-between mb-4">
-                            <TabPanel tabs={tabs} activeTab={activeTab} onChange={setActiveTab} />
-                            <div className="flex gap-2">
-                                <NeonButton size="sm" variant="ghost" icon={RefreshCw} onClick={handleGenerate}>Regenerate</NeonButton>
-                                <NeonButton size="sm" variant="ghost" icon={Save}>Save</NeonButton>
-                                <NeonButton size="sm" variant="default" icon={Download}>Export</NeonButton>
-                            </div>
+                {/* Editor */}
+                <div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                        <div className="tabs">
+                            {[
+                                { id: 'editor', label: 'Editor', icon: Edit },
+                                { id: 'preview', label: 'Preview', icon: Eye },
+                                { id: 'outline', label: 'Outline', icon: List },
+                            ].map((tab) => (
+                                <button
+                                    key={tab.id}
+                                    onClick={() => setActiveTab(tab.id)}
+                                    className={`tab ${activeTab === tab.id ? 'active' : ''}`}
+                                    style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}
+                                >
+                                    <tab.icon style={{ width: '14px', height: '14px' }} />
+                                    {tab.label}
+                                </button>
+                            ))}
                         </div>
+                        <div style={{ display: 'flex', gap: '0.25rem' }}>
+                            <button className="btn-ghost" style={{ padding: '0.5rem' }}>
+                                <RefreshCw style={{ width: '16px', height: '16px' }} />
+                            </button>
+                            <button className="btn-ghost" style={{ padding: '0.5rem' }}>
+                                <Save style={{ width: '16px', height: '16px' }} />
+                            </button>
+                            <button className="btn-ghost" style={{ padding: '0.5rem' }}>
+                                <Download style={{ width: '16px', height: '16px' }} />
+                            </button>
+                        </div>
+                    </div>
 
-                        {isGenerating ? (
-                            <div className="py-16"><LoadingPulse className="justify-center" /><p className="text-center text-sm text-slate-400 mt-4">Synthesizing research and interviews into article...</p></div>
-                        ) : (
-                            <>
-                                <TabContent tabId="editor" activeTab={activeTab}>
-                                    <textarea value={content} onChange={e => setContent(e.target.value)} className="w-full h-[500px] p-4 rounded-xl bg-white/5 border border-white/10 text-slate-300 font-mono text-sm leading-relaxed focus:border-neon-cyan/50 focus:outline-none resize-none" />
-                                </TabContent>
-                                <TabContent tabId="preview" activeTab={activeTab}>
-                                    <div className="p-6 rounded-xl bg-white/5 border border-white/10 prose prose-invert max-w-none prose-headings:font-display prose-h1:text-2xl prose-h2:text-xl prose-p:text-slate-300 prose-a:text-neon-cyan">
-                                        {content.split('\n').map((line, i) => {
-                                            if (line.startsWith('# ')) return <h1 key={i} className="text-2xl font-display font-bold text-white mb-4">{line.slice(2)}</h1>;
-                                            if (line.startsWith('## ')) return <h2 key={i} className="text-xl font-display font-semibold text-white mt-6 mb-3">{line.slice(3)}</h2>;
-                                            if (line.trim()) return <p key={i} className="text-slate-300 mb-4 leading-relaxed">{line}</p>;
-                                            return null;
-                                        })}
-                                    </div>
-                                </TabContent>
-                                <TabContent tabId="outline" activeTab={activeTab}>
-                                    <div className="space-y-2">
-                                        {outline.map(section => (
-                                            <div key={section.id} className="flex items-center justify-between p-3 rounded-lg bg-white/5">
-                                                <div className="flex items-center gap-3">
-                                                    {section.status === 'complete' ? <CheckCircle className="w-5 h-5 text-emerald-400" /> : section.status === 'in_progress' ? <RefreshCw className="w-5 h-5 text-neon-cyan animate-spin" /> : <div className="w-5 h-5 rounded-full border-2 border-slate-500" />}
-                                                    <span className="text-white">{section.section}</span>
-                                                </div>
-                                                <Badge variant={section.status === 'complete' ? 'success' : section.status === 'in_progress' ? 'cyan' : 'default'} size="sm">{section.status.replace('_', ' ')}</Badge>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </TabContent>
-                            </>
+                    <div className="panel" style={{ minHeight: '400px' }}>
+                        {activeTab === 'editor' && (
+                            <textarea
+                                value={content}
+                                onChange={(e) => setContent(e.target.value)}
+                                style={{
+                                    width: '100%',
+                                    height: '400px',
+                                    fontFamily: "'JetBrains Mono', monospace",
+                                    fontSize: '0.875rem',
+                                    lineHeight: 1.7,
+                                    color: 'var(--text-secondary)',
+                                    background: 'transparent',
+                                    border: 'none',
+                                    outline: 'none',
+                                    resize: 'none'
+                                }}
+                            />
                         )}
-                    </GlassCard>
+
+                        {activeTab === 'preview' && (
+                            <div style={{ padding: '1rem' }}>
+                                {content.split('\n').map((line, i) => {
+                                    if (line.startsWith('# ')) return <h1 key={i} className="text-h2" style={{ marginBottom: '1rem' }}>{line.slice(2)}</h1>;
+                                    if (line.startsWith('## ')) return <h2 key={i} className="text-h3" style={{ marginTop: '1.5rem', marginBottom: '0.75rem' }}>{line.slice(3)}</h2>;
+                                    if (line.trim()) return <p key={i} className="text-body" style={{ marginBottom: '0.75rem' }}>{line}</p>;
+                                    return null;
+                                })}
+                            </div>
+                        )}
+
+                        {activeTab === 'outline' && (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                                {outline.map((item, i) => (
+                                    <div key={i} className="card" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem' }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                                            {item.status === 'complete' && <CheckCircle style={{ width: '18px', height: '18px', color: 'var(--success)' }} />}
+                                            {item.status === 'in_progress' && <RefreshCw style={{ width: '18px', height: '18px', color: 'var(--gold)', animation: 'spin 2s linear infinite' }} />}
+                                            {item.status === 'pending' && <div style={{ width: '18px', height: '18px', borderRadius: '50%', border: '2px solid var(--text-dim)' }} />}
+                                            <span style={{ color: 'var(--text-primary)' }}>{item.section}</span>
+                                        </div>
+                                        <span className={`badge ${item.status === 'complete' ? 'badge-success' : item.status === 'in_progress' ? 'badge-gold' : ''}`}>
+                                            {item.status.replace('_', ' ')}
+                                        </span>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
                 </div>
 
-                {/* Fact checks sidebar */}
-                <div className="space-y-4">
-                    <GlassCard className="p-5 border-neon-cyan/20" glow>
-                        <div className="flex items-center gap-2 mb-4"><AlertTriangle className="w-5 h-5 text-amber-400" /><h3 className="font-medium text-white">Fact Checks</h3></div>
-                        <div className="space-y-3">
-                            {factChecks.map(fact => (
-                                <div key={fact.id} className={`p-3 rounded-lg ${fact.status === 'verified' ? 'bg-emerald-500/10 border border-emerald-500/30' : 'bg-amber-500/10 border border-amber-500/30'}`}>
-                                    <div className="flex items-start gap-2">
-                                        {fact.status === 'verified' ? <CheckCircle className="w-4 h-4 text-emerald-400 mt-0.5" /> : <AlertTriangle className="w-4 h-4 text-amber-400 mt-0.5" />}
+                {/* Sidebar */}
+                <div className="grid-sidebar">
+                    <div className="panel panel-gold">
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
+                            <AlertTriangle style={{ width: '16px', height: '16px', color: 'var(--gold)' }} />
+                            <p className="text-label text-gold">FACT CHECKS</p>
+                        </div>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                            {factChecks.map((f, i) => (
+                                <div
+                                    key={i}
+                                    className="card"
+                                    style={{
+                                        padding: '0.75rem',
+                                        background: f.status === 'verified' ? 'rgba(74, 222, 128, 0.1)' : 'rgba(251, 191, 36, 0.1)',
+                                        borderColor: f.status === 'verified' ? 'rgba(74, 222, 128, 0.3)' : 'rgba(251, 191, 36, 0.3)'
+                                    }}
+                                >
+                                    <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.5rem' }}>
+                                        {f.status === 'verified'
+                                            ? <CheckCircle style={{ width: '14px', height: '14px', color: 'var(--success)', marginTop: '2px' }} />
+                                            : <AlertTriangle style={{ width: '14px', height: '14px', color: 'var(--warning)', marginTop: '2px' }} />
+                                        }
                                         <div>
-                                            <p className="text-sm text-white">{fact.claim}</p>
-                                            <p className="text-xs text-slate-400 mt-1">{fact.source}</p>
+                                            <p className="text-small" style={{ color: 'var(--text-primary)', marginBottom: '0.25rem' }}>{f.claim}</p>
+                                            <p className="text-small text-muted">{f.source}</p>
                                         </div>
                                     </div>
                                 </div>
                             ))}
                         </div>
-                    </GlassCard>
+                    </div>
 
-                    <GlassCard className="p-5">
-                        <div className="flex items-center gap-2 mb-4"><BookOpen className="w-5 h-5 text-slate-400" /><h3 className="font-medium text-white">Sources Used</h3></div>
-                        <div className="space-y-2 text-sm">
-                            {['Dr. Sarah Chen Interview', 'CARB 2023 Report', 'AB 32 Documentation', 'Community Survey Data'].map(source => (
-                                <div key={source} className="flex items-center gap-2 p-2 rounded-lg hover:bg-white/5 cursor-pointer">
-                                    <ChevronRight className="w-4 h-4 text-slate-500" />
-                                    <span className="text-slate-300">{source}</span>
+                    <div className="card">
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
+                            <BookOpen style={{ width: '16px', height: '16px', color: 'var(--text-muted)' }} />
+                            <p className="text-label">SOURCES</p>
+                        </div>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                            {['Dr. Sarah Chen Interview', 'CARB 2023 Report', 'AB 32 Documentation'].map((s) => (
+                                <div key={s} style={{ padding: '0.625rem', background: 'var(--bg-tertiary)', borderRadius: '8px' }}>
+                                    <span className="text-small">{s}</span>
                                 </div>
                             ))}
                         </div>
-                    </GlassCard>
+                    </div>
                 </div>
             </div>
         </div>
