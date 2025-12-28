@@ -1,20 +1,18 @@
 # Auric
 
-Journalism is often a chaotic process. You have research in one tab, interview transcripts in a Google Doc, contact details in a spreadsheet, and your actual draft somewhere else entirely. It works, until it doesn't.
+We are living through a crisis of information. In an era where verifying facts is more critical than ever, the tools available to journalists are surprisingly fragile. A typical investigation lives across scattered documents, disparate email threads, and mental notes. This fragmentation isn't just a logistical headache; it is a liability. It makes it harder to verify sources, easier to lose track of evidence, and significantly more difficult for new journalists to produce rigorous work.
 
-We built Auric to bring some order to that chaos. It's a workflow tool designed specifically for investigative journalism. The goal isn't to replace the creativity or the legwork, but to give you a single, reliable place to organize it all. 
+Auric was built to address this disconnect. Our goal is to solve two fundamental problems: the high barrier to entry for complex reporting, and the urgent need for structural integrity in journalism.
 
-Think of it as an operating system for your investigation. You start by creating a story. Then you gather your research, add your sources, and link them together so you can see who said what. You can draft your questions here, send your outreach emails, and eventually write your article—all without alt-tabbing between five different applications.
+First, we want to democratize the investigative process. By providing a dedicated "operating system" for investigations, we give independent journalists and small teams the kind of organizational firepower usually reserved for major newsrooms. You don't need to invent a workflow from scratch; Auric gives you a proven structure to build upon.
 
-It's built to be simple, fast, and distraction-free.
+Second, we believe that organized information is the best defense against misinformation. When you can trace every sentence in your draft back to a specific interview, a saved research query, or a verified contact, you build accountability directly into your writing process. Auric links your sources to your stories and your notes to your drafts, creating a chain of custody for your facts.
 
-## What it does
+## How it works
 
-Auric maps to the actual lifecycle of a story:
+The application creates a unified environment for the entire lifecycle of a story:
 
-*   **Stories & Research**: Keep your investigations separate. dumping grounds for links and notes that actually make sense later.
-*   **Source Management**: A CRM for people, not sales leads. know who your sources are, where they work, and which stories they are relevant to.
-*   **Outreach & Interviews**: Draft emails and prepare question lists right next to your research.
-*   **Writing & Review**: A clean editor for drafting, with a simple workflow to track status from draft to publication.
-*   **AI Assistance**: If you want it, you can plug in your own API key to help generate interview questions or draft emails. If you don't, it stays out of your way.
-
+*   **Stories & Research**: Instead of drowning in browser tabs, you save and categorize your research directly against the story it belongs to. This builds a searchable knowledge base rather than a temporary pile of links.
+*   **Source Integrity**: Manage your network of sources with clarity. Know exactly who they are, where they work, and which stories they have contributed to.
+*   **Structured Outreach**: Draft emails and prepare interview questions within the same context as your research, ensuring you ask the right questions to the right people.
+*   **Verifiable Drafting**: Write your articles with all your evidence visible in the sidebar. This encourages referencing your source material constantly, reducing the risk of errors slipping into the final text.

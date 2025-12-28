@@ -1,5 +1,10 @@
 # Changelog
 
+## Caligula 1.0.2 (2025-12-28)
+
+### Documentation
+- **Mission Pivot**: Updated README to articulate Auric's role in combating misinformation and lowering barriers to entry for investigative journalism.
+
 ## Tiberius 1.0.1 (2025-12-28)
 
 ### Documentation
