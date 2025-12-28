@@ -11,6 +11,9 @@ import storiesRoutes from './routes/stories.js';
 import contactsRoutes from './routes/contacts.js';
 import researchRoutes from './routes/research.js';
 import settingsRoutes from './routes/settings.js';
+import articlesRoutes from './routes/articles.js';
+import meetingsRoutes from './routes/meetings.js';
+import transcriptsRoutes from './routes/transcripts.js';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -38,6 +41,9 @@ app.use('/api/stories', storiesRoutes);
 app.use('/api/contacts', contactsRoutes);
 app.use('/api/research', researchRoutes);
 app.use('/api/settings', settingsRoutes);
+app.use('/api/articles', articlesRoutes);
+app.use('/api/meetings', meetingsRoutes);
+app.use('/api/transcripts', transcriptsRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {

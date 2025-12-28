@@ -6,12 +6,22 @@ const router = Router();
 
 router.use(authenticateToken);
 
-// Get user's saved research
+// Get user's saved research (including unlinked)
 router.get('/', async (req, res) => {
     try {
+        // Get all stories owned by user
+        const userStories = await prisma.story.findMany({
+            where: { userId: req.user.id },
+            select: { id: true }
+        });
+        const storyIds = userStories.map(s => s.id);
+
         const research = await prisma.research.findMany({
             where: {
-                story: { userId: req.user.id }
+                OR: [
+                    { storyId: { in: storyIds } },
+                    { storyId: null } // Include unlinked research
+                ]
             },
             include: {
                 story: { select: { id: true, title: true } }

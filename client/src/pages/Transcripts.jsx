@@ -1,263 +1,270 @@
-import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { useApi } from '../hooks/useApi';
 import {
     FileText,
-    Search,
-    Play,
-    Pause,
+    Plus,
+    Loader,
+    Trash2,
+    X,
     Clock,
-    Quote,
-    Download,
-    Sparkles,
-    ArrowLeft,
-    Flag,
-    Copy,
-    Check,
-    User
+    Save
 } from 'lucide-react';
 
-const transcripts = [
-    { id: 1, title: 'Interview with Dr. Sarah Chen', date: 'Dec 10, 2024', duration: '28:45', source: 'Dr. Sarah Chen', highlights: 5 },
-    { id: 2, title: 'City Council Press Briefing', date: 'Dec 8, 2024', duration: '42:10', source: 'Mayor Wilson', highlights: 3 },
-];
-
-const sampleTranscript = [
-    { time: '00:00', speaker: 'John Doe', text: "Good morning, Dr. Chen. Thank you for speaking with me today." },
-    { time: '00:15', speaker: 'Dr. Sarah Chen', text: "Thank you for having me. I'm happy to share my perspective." },
-    { time: '00:25', speaker: 'John Doe', text: "Let's start with cap-and-trade. How would you assess its effectiveness?" },
-    { time: '00:35', speaker: 'Dr. Sarah Chen', text: "The cap-and-trade program has been remarkably successful. We've seen a 20% reduction in covered emissions since 2013.", highlighted: true },
-    { time: '01:15', speaker: 'John Doe', text: "That's significant. What do you see as the main challenges?" },
-    { time: '01:25', speaker: 'Dr. Sarah Chen', text: "The biggest challenge is extending these policies to harder sectors like heavy industry.", highlighted: true },
-];
-
 export function Transcripts() {
-    const [selected, setSelected] = useState(null);
-    const [searchQuery, setSearchQuery] = useState('');
-    const [isPlaying, setIsPlaying] = useState(false);
-    const [copiedIdx, setCopiedIdx] = useState(null);
+    const api = useApi();
+    const [transcripts, setTranscripts] = useState([]);
+    const [stories, setStories] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [showNewForm, setShowNewForm] = useState(false);
+    const [selectedTranscript, setSelectedTranscript] = useState(null);
 
-    const handleCopy = (idx, text) => {
-        navigator.clipboard.writeText(text);
-        setCopiedIdx(idx);
-        setTimeout(() => setCopiedIdx(null), 2000);
+    // Form state
+    const [newTranscript, setNewTranscript] = useState({
+        title: '',
+        storyId: '',
+        source: '',
+        duration: ''
+    });
+    const [content, setContent] = useState('');
+    const [saving, setSaving] = useState(false);
+
+    useEffect(() => {
+        loadData();
+    }, []);
+
+    const loadData = async () => {
+        try {
+            const [transcriptsData, storiesData] = await Promise.all([
+                api.get('/transcripts'),
+                api.get('/stories')
+            ]);
+            setTranscripts(transcriptsData);
+            setStories(storiesData);
+            if (storiesData.length > 0) {
+                setNewTranscript(prev => ({ ...prev, storyId: storiesData[0].id }));
+            }
+        } catch (err) {
+            console.error('Failed to load:', err);
+        } finally {
+            setLoading(false);
+        }
     };
 
-    if (selected) {
+    const handleCreate = async () => {
+        if (!newTranscript.title || !newTranscript.storyId) return;
+
+        setSaving(true);
+        try {
+            const transcript = await api.post('/transcripts', {
+                title: newTranscript.title,
+                storyId: newTranscript.storyId,
+                source: newTranscript.source || null,
+                duration: newTranscript.duration || null,
+                content: ''
+            });
+            setTranscripts([transcript, ...transcripts]);
+            setNewTranscript({
+                title: '',
+                storyId: stories[0]?.id || '',
+                source: '',
+                duration: ''
+            });
+            setShowNewForm(false);
+            selectTranscript(transcript);
+        } catch (err) {
+            console.error('Failed to create:', err);
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    const selectTranscript = (transcript) => {
+        setSelectedTranscript(transcript);
+        setContent(transcript.content || '');
+    };
+
+    const handleSave = async () => {
+        if (!selectedTranscript) return;
+
+        setSaving(true);
+        try {
+            const updated = await api.put(`/transcripts/${selectedTranscript.id}`, {
+                content
+            });
+            setTranscripts(transcripts.map(t => t.id === updated.id ? updated : t));
+            setSelectedTranscript(updated);
+        } catch (err) {
+            console.error('Failed to save:', err);
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    const handleDelete = async (id) => {
+        if (!confirm('Delete this transcript?')) return;
+
+        try {
+            await api.del(`/transcripts/${id}`);
+            const remaining = transcripts.filter(t => t.id !== id);
+            setTranscripts(remaining);
+            if (selectedTranscript?.id === id) {
+                setSelectedTranscript(null);
+                setContent('');
+            }
+        } catch (err) {
+            console.error('Failed to delete:', err);
+        }
+    };
+
+    const formatDate = (dateString) => {
+        return new Date(dateString).toLocaleDateString('en-US', {
+            month: 'short', day: 'numeric', year: 'numeric'
+        });
+    };
+
+    if (loading) {
         return (
-            <div className="page-container">
-                <button
-                    onClick={() => setSelected(null)}
-                    style={{
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: '0.5rem',
-                        fontSize: '0.8125rem',
-                        color: 'var(--gold)',
-                        background: 'none',
-                        border: 'none',
-                        cursor: 'pointer',
-                        marginBottom: '2rem'
-                    }}
-                >
-                    <ArrowLeft style={{ width: '16px', height: '16px' }} />
-                    Back to Transcripts
-                </button>
-
-                <header style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '2rem' }}>
-                    <div>
-                        <h1 className="text-h2" style={{ marginBottom: '0.375rem' }}>{selected.title}</h1>
-                        <p className="text-small">{selected.date} • {selected.duration}</p>
-                    </div>
-                    <button className="btn btn-secondary">
-                        <Download style={{ width: '16px', height: '16px' }} />
-                        Export
-                    </button>
-                </header>
-
-                {/* Player */}
-                <div className="card" style={{ marginBottom: '2rem' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem' }}>
-                        <button
-                            onClick={() => setIsPlaying(!isPlaying)}
-                            style={{
-                                width: '48px',
-                                height: '48px',
-                                borderRadius: '50%',
-                                background: 'var(--gold)',
-                                border: 'none',
-                                cursor: 'pointer',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center'
-                            }}
-                        >
-                            {isPlaying
-                                ? <Pause style={{ width: '20px', height: '20px', color: 'var(--bg-primary)' }} />
-                                : <Play style={{ width: '20px', height: '20px', color: 'var(--bg-primary)', marginLeft: '2px' }} />
-                            }
-                        </button>
-                        <div style={{ flex: 1 }}>
-                            <div className="progress-bar">
-                                <div className="progress-fill" style={{ width: '33%' }} />
-                            </div>
-                        </div>
-                        <span className="text-mono text-muted">09:15 / 28:45</span>
-                    </div>
-                </div>
-
-                {/* Transcript */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                    {sampleTranscript.map((seg, idx) => (
-                        <div
-                            key={idx}
-                            className="card"
-                            style={{
-                                background: seg.highlighted ? 'var(--gold-muted)' : 'var(--bg-secondary)',
-                                borderColor: seg.highlighted ? 'rgba(212, 168, 83, 0.3)' : 'var(--border-subtle)'
-                            }}
-                        >
-                            <div style={{ display: 'flex', gap: '1rem' }}>
-                                <div className="avatar" style={{ width: '40px', height: '40px', fontSize: '0.75rem' }}>
-                                    {seg.speaker.split(' ').map(n => n[0]).join('')}
-                                </div>
-                                <div style={{ flex: 1 }}>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.5rem' }}>
-                                        <span style={{ fontWeight: 500, color: seg.highlighted ? 'var(--gold)' : 'var(--text-primary)' }}>
-                                            {seg.speaker}
-                                        </span>
-                                        <span className="text-mono text-muted">{seg.time}</span>
-                                        {seg.highlighted && <span className="badge badge-gold">Key Quote</span>}
-                                    </div>
-                                    <p className="text-body">{seg.text}</p>
-                                </div>
-                                <div style={{ display: 'flex', gap: '0.25rem' }}>
-                                    <button className="btn-ghost" onClick={() => handleCopy(idx, seg.text)} style={{ padding: '0.375rem' }}>
-                                        {copiedIdx === idx
-                                            ? <Check style={{ width: '16px', height: '16px', color: 'var(--success)' }} />
-                                            : <Copy style={{ width: '16px', height: '16px' }} />
-                                        }
-                                    </button>
-                                    <button className="btn-ghost" style={{ padding: '0.375rem' }}>
-                                        <Flag style={{ width: '16px', height: '16px' }} />
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    ))}
-                </div>
+            <div className="page-container" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '50vh' }}>
+                <Loader style={{ width: '24px', height: '24px', color: 'var(--gold)', animation: 'spin 1s linear infinite' }} />
             </div>
         );
     }
 
     return (
-        <div className="page-container">
-            <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '2.5rem' }}>
-                <div>
-                    <h1 className="text-h1" style={{ marginBottom: '0.5rem' }}>Transcripts</h1>
-                    <p className="text-body" style={{ maxWidth: '400px' }}>AI-powered transcription with quote highlighting</p>
+        <div className="page-container" style={{ display: 'flex', gap: '2rem', height: 'calc(100vh - 120px)' }}>
+            {/* Sidebar - Transcript List */}
+            <div style={{ width: '300px', flexShrink: 0, display: 'flex', flexDirection: 'column' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                    <h2 className="text-h3">Transcripts</h2>
+                    <button onClick={() => setShowNewForm(true)} className="btn-ghost" style={{ padding: '0.5rem' }}>
+                        <Plus style={{ width: '18px', height: '18px' }} />
+                    </button>
                 </div>
-                <button className="btn btn-primary">
-                    <Sparkles style={{ width: '16px', height: '16px' }} />
-                    Upload Recording
-                </button>
-            </header>
 
-            <div style={{ position: 'relative', maxWidth: '400px', marginBottom: '2rem' }}>
-                <Search style={{
-                    position: 'absolute',
-                    left: '1rem',
-                    top: '50%',
-                    transform: 'translateY(-50%)',
-                    width: '18px',
-                    height: '18px',
-                    color: 'var(--text-dim)'
-                }} />
-                <input
-                    type="text"
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    placeholder="Search transcripts..."
-                    className="input"
-                    style={{ paddingLeft: '3rem' }}
-                />
+                {/* New transcript form */}
+                {showNewForm && (
+                    <div className="card" style={{ marginBottom: '1rem', padding: '1rem' }}>
+                        <input
+                            type="text"
+                            value={newTranscript.title}
+                            onChange={(e) => setNewTranscript({ ...newTranscript, title: e.target.value })}
+                            placeholder="Transcript title"
+                            className="input"
+                            style={{ marginBottom: '0.75rem', fontSize: '0.875rem' }}
+                        />
+                        <select
+                            value={newTranscript.storyId}
+                            onChange={(e) => setNewTranscript({ ...newTranscript, storyId: e.target.value })}
+                            className="input"
+                            style={{ marginBottom: '0.75rem', fontSize: '0.875rem' }}
+                        >
+                            {stories.map(s => (
+                                <option key={s.id} value={s.id}>{s.title}</option>
+                            ))}
+                        </select>
+                        <input
+                            type="text"
+                            value={newTranscript.source}
+                            onChange={(e) => setNewTranscript({ ...newTranscript, source: e.target.value })}
+                            placeholder="Source (e.g., Zoom recording)"
+                            className="input"
+                            style={{ marginBottom: '0.75rem', fontSize: '0.875rem' }}
+                        />
+                        <div style={{ display: 'flex', gap: '0.5rem' }}>
+                            <button onClick={() => setShowNewForm(false)} className="btn btn-secondary" style={{ flex: 1, fontSize: '0.75rem' }}>Cancel</button>
+                            <button onClick={handleCreate} disabled={saving} className="btn btn-primary" style={{ flex: 1, fontSize: '0.75rem' }}>Create</button>
+                        </div>
+                    </div>
+                )}
+
+                {/* Transcript list */}
+                <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                    {transcripts.length === 0 ? (
+                        <div style={{ textAlign: 'center', padding: '2rem 1rem' }}>
+                            <FileText style={{ width: '32px', height: '32px', color: 'var(--text-dim)', margin: '0 auto 1rem' }} />
+                            <p className="text-small">No transcripts yet</p>
+                        </div>
+                    ) : (
+                        transcripts.map(transcript => (
+                            <div
+                                key={transcript.id}
+                                onClick={() => selectTranscript(transcript)}
+                                className="card card-interactive"
+                                style={{
+                                    padding: '1rem',
+                                    cursor: 'pointer',
+                                    borderColor: selectedTranscript?.id === transcript.id ? 'var(--gold)' : undefined
+                                }}
+                            >
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                                    <div>
+                                        <p style={{ fontSize: '0.875rem', fontWeight: 500, color: 'var(--text-primary)', marginBottom: '0.25rem' }}>
+                                            {transcript.title}
+                                        </p>
+                                        <p className="text-small">
+                                            {transcript.story?.title} • {formatDate(transcript.createdAt)}
+                                        </p>
+                                        {transcript.duration && (
+                                            <p className="text-small" style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', marginTop: '0.25rem' }}>
+                                                <Clock style={{ width: '12px', height: '12px' }} />
+                                                {transcript.duration}
+                                            </p>
+                                        )}
+                                    </div>
+                                    <button
+                                        onClick={(e) => { e.stopPropagation(); handleDelete(transcript.id); }}
+                                        className="btn-ghost"
+                                        style={{ padding: '0.25rem' }}
+                                    >
+                                        <Trash2 style={{ width: '14px', height: '14px' }} />
+                                    </button>
+                                </div>
+                            </div>
+                        ))
+                    )}
+                </div>
             </div>
 
-            <div className="grid-main">
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                    {transcripts.map((t) => (
-                        <button
-                            key={t.id}
-                            onClick={() => setSelected(t)}
-                            className="card card-interactive"
-                            style={{ display: 'flex', gap: '1.25rem', textAlign: 'left', cursor: 'pointer' }}
-                        >
-                            <div style={{
-                                width: '56px',
-                                height: '56px',
-                                borderRadius: '12px',
-                                background: 'var(--bg-tertiary)',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                flexShrink: 0
-                            }}>
-                                <FileText style={{ width: '24px', height: '24px', color: 'var(--text-muted)' }} />
+            {/* Editor */}
+            <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+                {selectedTranscript ? (
+                    <>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                            <div>
+                                <h2 className="text-h2">{selectedTranscript.title}</h2>
+                                <p className="text-small">
+                                    {selectedTranscript.source && `${selectedTranscript.source} • `}
+                                    {formatDate(selectedTranscript.createdAt)}
+                                </p>
                             </div>
-                            <div style={{ flex: 1 }}>
-                                <h3 style={{ fontSize: '1rem', fontWeight: 500, color: 'var(--text-primary)', marginBottom: '0.375rem' }}>
-                                    {t.title}
-                                </h3>
-                                <div style={{ display: 'flex', gap: '1.25rem' }}>
-                                    <span className="text-small" style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
-                                        <User style={{ width: '14px', height: '14px' }} /> {t.source}
-                                    </span>
-                                    <span className="text-small" style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
-                                        <Clock style={{ width: '14px', height: '14px' }} /> {t.duration}
-                                    </span>
-                                    <span className="text-small">{t.date}</span>
-                                </div>
-                            </div>
-                            {t.highlights > 0 && <span className="badge badge-gold">{t.highlights} highlights</span>}
-                        </button>
-                    ))}
-                </div>
-
-                <div className="grid-sidebar">
-                    <div className="panel panel-gold">
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
-                            <Quote style={{ width: '16px', height: '16px', color: 'var(--gold)' }} />
-                            <p className="text-label text-gold">RECENT KEY QUOTES</p>
+                            <button onClick={handleSave} disabled={saving} className="btn btn-primary">
+                                {saving ? <Loader style={{ width: '16px', height: '16px', animation: 'spin 1s linear infinite' }} /> : <Save style={{ width: '16px', height: '16px' }} />}
+                                Save
+                            </button>
                         </div>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                            {sampleTranscript.filter(s => s.highlighted).map((s, i) => (
-                                <div key={i} style={{ padding: '0.75rem', background: 'var(--bg-secondary)', borderRadius: '8px', borderLeft: '2px solid var(--gold)' }}>
-                                    <p className="text-small" style={{ fontStyle: 'italic', marginBottom: '0.375rem' }}>
-                                        "{s.text.slice(0, 60)}..."
-                                    </p>
-                                    <p className="text-small text-muted">— {s.speaker}</p>
-                                </div>
-                            ))}
+
+                        <textarea
+                            value={content}
+                            onChange={(e) => setContent(e.target.value)}
+                            placeholder="Paste or type transcript content here..."
+                            className="input"
+                            style={{
+                                flex: 1,
+                                resize: 'none',
+                                fontFamily: 'monospace',
+                                fontSize: '0.875rem',
+                                lineHeight: 1.8
+                            }}
+                        />
+                    </>
+                ) : (
+                    <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <div style={{ textAlign: 'center' }}>
+                            <FileText style={{ width: '48px', height: '48px', color: 'var(--text-dim)', margin: '0 auto 1rem' }} />
+                            <p className="text-body">Select a transcript or create a new one</p>
                         </div>
                     </div>
-
-                    <div className="card">
-                        <p className="text-label" style={{ marginBottom: '1rem' }}>STATISTICS</p>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                            {[
-                                { label: 'Total transcripts', value: '8' },
-                                { label: 'Total duration', value: '4h 32m' },
-                                { label: 'Key quotes', value: '24', color: 'var(--gold)' },
-                            ].map((stat) => (
-                                <div key={stat.label} style={{ display: 'flex', justifyContent: 'space-between' }}>
-                                    <span className="text-small">{stat.label}</span>
-                                    <span style={{ fontSize: '0.875rem', fontWeight: 500, color: stat.color || 'var(--text-primary)' }}>
-                                        {stat.value}
-                                    </span>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-                </div>
+                )}
             </div>
         </div>
     );

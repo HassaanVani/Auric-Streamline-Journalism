@@ -1,50 +1,149 @@
-import express from 'express';
-const router = express.Router();
+import { Router } from 'express';
+import prisma from '../lib/db.js';
+import { authenticateToken } from '../middleware/auth.js';
 
-// POST /api/articles/draft - Generate article draft
-router.post('/draft', async (req, res) => {
-    const { storyId, sources } = req.body;
-    await new Promise(resolve => setTimeout(resolve, 2000));
+const router = Router();
 
-    res.json({
-        draftId: `draft_${Date.now()}`,
-        title: "California's Bold Climate Agenda: A Deep Dive into Policy Reform",
-        content: `California has long positioned itself as a leader in environmental policy...`,
-        outline: [
-            { section: 'Introduction', status: 'complete' },
-            { section: 'Cap-and-Trade Analysis', status: 'complete' },
-            { section: 'Community Impact', status: 'in_progress' },
-        ],
-        wordCount: 1247,
-        generatedAt: new Date().toISOString(),
-    });
+router.use(authenticateToken);
+
+// Get all user's articles
+router.get('/', async (req, res) => {
+    try {
+        const articles = await prisma.article.findMany({
+            where: {
+                story: { userId: req.user.id }
+            },
+            include: {
+                story: { select: { id: true, title: true } }
+            },
+            orderBy: { updatedAt: 'desc' }
+        });
+        res.json(articles);
+    } catch (error) {
+        console.error('Get articles error:', error);
+        res.status(500).json({ error: 'Failed to get articles' });
+    }
 });
 
-// GET /api/articles - Get all articles
-router.get('/', (req, res) => {
-    res.json({
-        articles: [
-            { id: 1, title: 'Climate Policy Reform', status: 'draft', progress: 65, lastUpdated: '2024-03-10' },
-            { id: 2, title: 'Tech Industry Analysis', status: 'outline', progress: 25, lastUpdated: '2024-03-08' },
-        ],
-    });
+// Get single article
+router.get('/:id', async (req, res) => {
+    try {
+        const article = await prisma.article.findFirst({
+            where: {
+                id: req.params.id,
+                story: { userId: req.user.id }
+            },
+            include: {
+                story: { select: { id: true, title: true } }
+            }
+        });
+
+        if (!article) {
+            return res.status(404).json({ error: 'Article not found' });
+        }
+
+        res.json(article);
+    } catch (error) {
+        console.error('Get article error:', error);
+        res.status(500).json({ error: 'Failed to get article' });
+    }
 });
 
-// GET /api/articles/:id - Get single article
-router.get('/:id', (req, res) => {
-    res.json({ id: req.params.id, title: 'Climate Policy Reform', content: '...', status: 'draft' });
+// Create new article
+router.post('/', async (req, res) => {
+    try {
+        const { title, content, storyId } = req.body;
+
+        if (!title || !storyId) {
+            return res.status(400).json({ error: 'Title and storyId are required' });
+        }
+
+        // Verify story ownership
+        const story = await prisma.story.findFirst({
+            where: { id: storyId, userId: req.user.id }
+        });
+
+        if (!story) {
+            return res.status(404).json({ error: 'Story not found' });
+        }
+
+        const article = await prisma.article.create({
+            data: {
+                title,
+                content: content || '',
+                storyId
+            },
+            include: {
+                story: { select: { id: true, title: true } }
+            }
+        });
+
+        res.status(201).json(article);
+    } catch (error) {
+        console.error('Create article error:', error);
+        res.status(500).json({ error: 'Failed to create article' });
+    }
 });
 
-// PUT /api/articles/:id - Update article
-router.put('/:id', (req, res) => {
-    res.json({ id: req.params.id, ...req.body, updated: true });
+// Update article
+router.put('/:id', async (req, res) => {
+    try {
+        const { title, content, status } = req.body;
+
+        // Verify ownership
+        const existing = await prisma.article.findFirst({
+            where: {
+                id: req.params.id,
+                story: { userId: req.user.id }
+            }
+        });
+
+        if (!existing) {
+            return res.status(404).json({ error: 'Article not found' });
+        }
+
+        const article = await prisma.article.update({
+            where: { id: req.params.id },
+            data: {
+                ...(title && { title }),
+                ...(content !== undefined && { content }),
+                ...(status && { status })
+            },
+            include: {
+                story: { select: { id: true, title: true } }
+            }
+        });
+
+        res.json(article);
+    } catch (error) {
+        console.error('Update article error:', error);
+        res.status(500).json({ error: 'Failed to update article' });
+    }
 });
 
-// POST /api/articles/:id/regenerate - Regenerate section
-router.post('/:id/regenerate', async (req, res) => {
-    const { section } = req.body;
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    res.json({ success: true, section, regeneratedContent: '...' });
+// Delete article
+router.delete('/:id', async (req, res) => {
+    try {
+        const existing = await prisma.article.findFirst({
+            where: {
+                id: req.params.id,
+                story: { userId: req.user.id }
+            }
+        });
+
+        if (!existing) {
+            return res.status(404).json({ error: 'Article not found' });
+        }
+
+        await prisma.article.delete({
+            where: { id: req.params.id }
+        });
+
+        res.json({ message: 'Article deleted' });
+    } catch (error) {
+        console.error('Delete article error:', error);
+        res.status(500).json({ error: 'Failed to delete article' });
+    }
 });
 
 export default router;

@@ -1,48 +1,151 @@
-import express from 'express';
-const router = express.Router();
+import { Router } from 'express';
+import prisma from '../lib/db.js';
+import { authenticateToken } from '../middleware/auth.js';
 
-// POST /api/transcripts/upload - Upload recording for transcription
-router.post('/upload', async (req, res) => {
-    await new Promise(resolve => setTimeout(resolve, 2000));
-    res.json({
-        transcriptId: `trans_${Date.now()}`,
-        status: 'processing',
-        estimatedTime: '5 minutes',
-    });
+const router = Router();
+
+router.use(authenticateToken);
+
+// Get all user's transcripts
+router.get('/', async (req, res) => {
+    try {
+        const transcripts = await prisma.transcript.findMany({
+            where: {
+                story: { userId: req.user.id }
+            },
+            include: {
+                story: { select: { id: true, title: true } }
+            },
+            orderBy: { createdAt: 'desc' }
+        });
+        res.json(transcripts);
+    } catch (error) {
+        console.error('Get transcripts error:', error);
+        res.status(500).json({ error: 'Failed to get transcripts' });
+    }
 });
 
-// GET /api/transcripts - Get all transcripts
-router.get('/', (req, res) => {
-    res.json({
-        transcripts: [
-            { id: 1, title: 'Interview with Dr. Sarah Chen', date: '2024-03-10', duration: '28:45', status: 'complete', highlights: 5 },
-            { id: 2, title: 'City Council Briefing', date: '2024-03-08', duration: '42:10', status: 'complete', highlights: 3 },
-        ],
-    });
+// Get single transcript
+router.get('/:id', async (req, res) => {
+    try {
+        const transcript = await prisma.transcript.findFirst({
+            where: {
+                id: req.params.id,
+                story: { userId: req.user.id }
+            },
+            include: {
+                story: { select: { id: true, title: true } }
+            }
+        });
+
+        if (!transcript) {
+            return res.status(404).json({ error: 'Transcript not found' });
+        }
+
+        res.json(transcript);
+    } catch (error) {
+        console.error('Get transcript error:', error);
+        res.status(500).json({ error: 'Failed to get transcript' });
+    }
 });
 
-// GET /api/transcripts/:id - Get single transcript
-router.get('/:id', (req, res) => {
-    res.json({
-        id: req.params.id,
-        title: 'Interview with Dr. Sarah Chen',
-        segments: [
-            { time: '00:00', speaker: 'John Doe', text: 'Good morning, Dr. Chen.', highlighted: false },
-            { time: '00:15', speaker: 'Dr. Sarah Chen', text: 'Thank you for having me.', highlighted: false },
-            { time: '00:35', speaker: 'Dr. Sarah Chen', text: 'The cap-and-trade program has been remarkably successful...', highlighted: true },
-        ],
-    });
+// Create new transcript
+router.post('/', async (req, res) => {
+    try {
+        const { title, content, duration, storyId, source } = req.body;
+
+        if (!title || !storyId) {
+            return res.status(400).json({ error: 'Title and storyId are required' });
+        }
+
+        // Verify story ownership
+        const story = await prisma.story.findFirst({
+            where: { id: storyId, userId: req.user.id }
+        });
+
+        if (!story) {
+            return res.status(404).json({ error: 'Story not found' });
+        }
+
+        const transcript = await prisma.transcript.create({
+            data: {
+                title,
+                content: content || '',
+                duration,
+                storyId,
+                source
+            },
+            include: {
+                story: { select: { id: true, title: true } }
+            }
+        });
+
+        res.status(201).json(transcript);
+    } catch (error) {
+        console.error('Create transcript error:', error);
+        res.status(500).json({ error: 'Failed to create transcript' });
+    }
 });
 
-// POST /api/transcripts/:id/highlight - Toggle highlight on segment
-router.post('/:id/highlight', (req, res) => {
-    const { segmentIndex, highlighted } = req.body;
-    res.json({ success: true, segmentIndex, highlighted });
+// Update transcript
+router.put('/:id', async (req, res) => {
+    try {
+        const { title, content, duration, source } = req.body;
+
+        const existing = await prisma.transcript.findFirst({
+            where: {
+                id: req.params.id,
+                story: { userId: req.user.id }
+            }
+        });
+
+        if (!existing) {
+            return res.status(404).json({ error: 'Transcript not found' });
+        }
+
+        const transcript = await prisma.transcript.update({
+            where: { id: req.params.id },
+            data: {
+                ...(title && { title }),
+                ...(content !== undefined && { content }),
+                ...(duration !== undefined && { duration }),
+                ...(source !== undefined && { source })
+            },
+            include: {
+                story: { select: { id: true, title: true } }
+            }
+        });
+
+        res.json(transcript);
+    } catch (error) {
+        console.error('Update transcript error:', error);
+        res.status(500).json({ error: 'Failed to update transcript' });
+    }
 });
 
-// GET /api/transcripts/:id/export - Export transcript
-router.get('/:id/export', (req, res) => {
-    res.json({ downloadUrl: `/downloads/transcript_${req.params.id}.txt` });
+// Delete transcript
+router.delete('/:id', async (req, res) => {
+    try {
+        const existing = await prisma.transcript.findFirst({
+            where: {
+                id: req.params.id,
+                story: { userId: req.user.id }
+            }
+        });
+
+        if (!existing) {
+            return res.status(404).json({ error: 'Transcript not found' });
+        }
+
+        await prisma.transcript.delete({
+            where: { id: req.params.id }
+        });
+
+        res.json({ message: 'Transcript deleted' });
+    } catch (error) {
+        console.error('Delete transcript error:', error);
+        res.status(500).json({ error: 'Failed to delete transcript' });
+    }
 });
 
 export default router;

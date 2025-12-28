@@ -1,206 +1,225 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useApi } from '../hooks/useApi';
 import {
     Search,
     Sparkles,
-    ExternalLink,
+    Trash2,
     Send,
     Folder,
-    ChevronRight,
-    Plus
+    Plus,
+    Loader
 } from 'lucide-react';
 
-const results = [
-    {
-        id: 1,
-        title: 'The New Era of Central Bank Policy and Global Markets',
-        excerpt: 'Analysis of recent rate adjustments and their long-term impact on international trade agreements and emerging economies.',
-        source: 'The Financial Times',
-        date: 'Oct 26, 2023',
-    },
-    {
-        id: 2,
-        title: 'California Cap-and-Trade: A Decade of Results',
-        excerpt: 'Comprehensive review of the state\'s emissions trading system, examining economic impacts across industrial sectors.',
-        source: 'Environmental Research Institute',
-        date: 'Nov 12, 2023',
-    },
-    {
-        id: 3,
-        title: 'Community Perspectives on Climate Action',
-        excerpt: 'Grassroots movements and local government initiatives pushing for more aggressive climate policies.',
-        source: 'Bay Area Monitor',
-        date: 'Dec 3, 2023',
-    },
-];
-
-const savedItems = [
-    { title: 'Report: Green Energy Transition', type: 'PDF' },
-    { title: 'Data: Q3 GDP Growth', type: 'Chart' },
-    { title: 'Article: The Future of Work', type: 'Analysis' },
-];
-
-const aiMessages = [
-    { role: 'user', content: 'Summarize the key takeaways on current inflation trends.' },
-    {
-        role: 'assistant', content: `Here's a synthesis of the latest research:
-
-1. **Persistent Core Inflation**: Core services inflation remains sticky in major economies.
-
-2. **Energy Volatility**: Geopolitical tensions creating uncertainty in energy markets.
-
-3. **Wage-Price Concerns**: Central banks monitoring wage growth data closely.` },
-];
-
-const breadcrumbs = ['Home', 'Topics', 'Global Economics', 'Current Analysis'];
-
 export function Research() {
+    const api = useApi();
+    const [research, setResearch] = useState([]);
+    const [stories, setStories] = useState([]);
+    const [loading, setLoading] = useState(true);
     const [query, setQuery] = useState('');
-    const [aiInput, setAiInput] = useState('');
+    const [selectedStory, setSelectedStory] = useState('');
+    const [saving, setSaving] = useState(false);
+
+    useEffect(() => {
+        loadData();
+    }, []);
+
+    const loadData = async () => {
+        try {
+            const [researchData, storiesData] = await Promise.all([
+                api.get('/research'),
+                api.get('/stories')
+            ]);
+            setResearch(researchData);
+            setStories(storiesData);
+            if (storiesData.length > 0 && !selectedStory) {
+                setSelectedStory(storiesData[0].id);
+            }
+        } catch (err) {
+            console.error('Failed to load data:', err);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleSaveResearch = async () => {
+        if (!query.trim()) return;
+
+        setSaving(true);
+        try {
+            const newResearch = await api.post('/research', {
+                query: query.trim(),
+                storyId: selectedStory || null,
+                results: null // Would be populated by AI search in future
+            });
+            setResearch([newResearch, ...research]);
+            setQuery('');
+        } catch (err) {
+            console.error('Failed to save research:', err);
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    const handleDeleteResearch = async (id) => {
+        try {
+            await api.del(`/research/${id}`);
+            setResearch(research.filter(r => r.id !== id));
+        } catch (err) {
+            console.error('Failed to delete research:', err);
+        }
+    };
+
+    const formatDate = (dateString) => {
+        return new Date(dateString).toLocaleDateString('en-US', {
+            month: 'short',
+            day: 'numeric',
+            year: 'numeric'
+        });
+    };
+
+    if (loading) {
+        return (
+            <div className="page-container" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '50vh' }}>
+                <Loader style={{ width: '24px', height: '24px', color: 'var(--gold)', animation: 'spin 1s linear infinite' }} />
+            </div>
+        );
+    }
 
     return (
         <div className="page-container">
-            {/* Search Bar */}
+            {/* Header */}
+            <header className="page-header">
+                <h1 className="text-h1" style={{ marginBottom: '0.5rem' }}>Research</h1>
+                <p className="text-body">Save research queries and notes for your stories.</p>
+            </header>
+
+            {/* Search/Save Bar */}
             <div style={{ marginBottom: '2rem' }}>
-                <div style={{ position: 'relative', maxWidth: '720px' }}>
-                    <Search style={{
-                        position: 'absolute',
-                        left: '1.25rem',
-                        top: '50%',
-                        transform: 'translateY(-50%)',
-                        width: '20px',
-                        height: '20px',
-                        color: query ? 'var(--gold)' : 'var(--text-dim)'
-                    }} />
-                    <input
-                        type="text"
-                        value={query}
-                        onChange={(e) => setQuery(e.target.value)}
-                        placeholder="Research Auric: Ask anything, explore threads..."
-                        className="input-lg"
-                        style={{ width: '100%', paddingLeft: '3.5rem' }}
-                    />
+                <div style={{ display: 'flex', gap: '1rem', alignItems: 'flex-end' }}>
+                    <div style={{ flex: 1 }}>
+                        <label className="text-label" style={{ display: 'block', marginBottom: '0.5rem' }}>Research Query</label>
+                        <div style={{ position: 'relative' }}>
+                            <Search style={{
+                                position: 'absolute',
+                                left: '1rem',
+                                top: '50%',
+                                transform: 'translateY(-50%)',
+                                width: '18px',
+                                height: '18px',
+                                color: 'var(--text-dim)'
+                            }} />
+                            <input
+                                type="text"
+                                value={query}
+                                onChange={(e) => setQuery(e.target.value)}
+                                onKeyDown={(e) => e.key === 'Enter' && handleSaveResearch()}
+                                placeholder="What are you researching?"
+                                className="input"
+                                style={{ paddingLeft: '3rem' }}
+                            />
+                        </div>
+                    </div>
+
+                    <div style={{ minWidth: '200px' }}>
+                        <label className="text-label" style={{ display: 'block', marginBottom: '0.5rem' }}>Link to Story</label>
+                        <select
+                            value={selectedStory}
+                            onChange={(e) => setSelectedStory(e.target.value)}
+                            className="input"
+                        >
+                            <option value="">No story</option>
+                            {stories.map(s => (
+                                <option key={s.id} value={s.id}>{s.title}</option>
+                            ))}
+                        </select>
+                    </div>
+
+                    <button
+                        onClick={handleSaveResearch}
+                        disabled={!query.trim() || saving}
+                        className="btn btn-primary"
+                    >
+                        {saving ? <Loader style={{ width: '16px', height: '16px', animation: 'spin 1s linear infinite' }} /> : <Plus style={{ width: '16px', height: '16px' }} />}
+                        Save
+                    </button>
                 </div>
             </div>
 
-            {/* Breadcrumb */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '2rem' }}>
-                {breadcrumbs.map((item, i) => (
-                    <span key={i} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                        {i > 0 && <ChevronRight style={{ width: '12px', height: '12px', color: 'var(--text-dim)' }} />}
-                        <span style={{
-                            fontSize: '0.8125rem',
-                            color: i === breadcrumbs.length - 1 ? 'var(--text-primary)' : 'var(--gold)',
-                            cursor: i < breadcrumbs.length - 1 ? 'pointer' : 'default'
-                        }}>
-                            {item}
-                        </span>
-                    </span>
-                ))}
-            </div>
-
             <div className="grid-main">
-                {/* Results */}
+                {/* Research List */}
                 <div>
-                    {results.map((result, i) => (
-                        <article key={result.id} style={{ marginBottom: '2.5rem' }}>
-                            <h2 className="text-h2" style={{ marginBottom: '0.75rem', cursor: 'pointer' }}>
-                                {result.title}
-                            </h2>
-
-                            <p className="text-body" style={{ marginBottom: '1rem', maxWidth: '640px' }}>
-                                {result.excerpt}
+                    {research.length === 0 ? (
+                        <div className="panel" style={{ textAlign: 'center', padding: '4rem 2rem' }}>
+                            <Folder style={{ width: '48px', height: '48px', color: 'var(--gold)', margin: '0 auto 1.5rem' }} />
+                            <h2 className="text-h2" style={{ marginBottom: '0.75rem' }}>No research saved yet</h2>
+                            <p className="text-body" style={{ maxWidth: '400px', margin: '0 auto' }}>
+                                Start saving your research queries above. You can link them to specific stories.
                             </p>
-
-                            <p className="text-small">
-                                Source: <span style={{ color: 'var(--gold)' }}>{result.source}</span>, {result.date}
-                            </p>
-
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginTop: '1rem' }}>
-                                <div className="progress-bar" style={{ flex: 1, maxWidth: '300px' }}>
-                                    <div className="progress-fill" style={{ width: '60%' }} />
+                        </div>
+                    ) : (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                            {research.map((item) => (
+                                <div key={item.id} className="card">
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                                        <div style={{ flex: 1 }}>
+                                            <h3 style={{ fontSize: '1rem', fontWeight: 500, color: 'var(--text-primary)', marginBottom: '0.5rem' }}>
+                                                {item.query}
+                                            </h3>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                                                <span className="text-small">{formatDate(item.createdAt)}</span>
+                                                {item.story && (
+                                                    <span className="badge badge-gold">{item.story.title}</span>
+                                                )}
+                                            </div>
+                                        </div>
+                                        <button
+                                            onClick={() => handleDeleteResearch(item.id)}
+                                            className="btn-ghost"
+                                            style={{ padding: '0.5rem', color: 'var(--text-dim)' }}
+                                        >
+                                            <Trash2 style={{ width: '16px', height: '16px' }} />
+                                        </button>
+                                    </div>
                                 </div>
-                                <span className="badge badge-gold">Relevant</span>
-                            </div>
-
-                            {i < results.length - 1 && <div className="divider" style={{ marginTop: '2.5rem' }} />}
-                        </article>
-                    ))}
-
-                    <div style={{ textAlign: 'center', marginTop: '2rem' }}>
-                        <button className="btn btn-secondary">
-                            <Plus style={{ width: '16px', height: '16px' }} />
-                            New Research Thread
-                        </button>
-                    </div>
+                            ))}
+                        </div>
+                    )}
                 </div>
 
                 {/* Sidebar */}
                 <div className="grid-sidebar">
-                    {/* Saved Items */}
-                    <div className="card">
-                        <p className="text-label" style={{ marginBottom: '1rem' }}>SAVED ITEMS</p>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                            {savedItems.map((item, i) => (
-                                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', cursor: 'pointer' }}>
-                                    <Folder style={{ width: '16px', height: '16px', color: 'var(--gold)' }} />
-                                    <span className="text-small" style={{ color: 'var(--text-secondary)', flex: 1 }}>{item.title}</span>
-                                    <span className="text-small text-dim">({item.type})</span>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-
-                    {/* AI Chat */}
-                    <div className="panel panel-gold" style={{ display: 'flex', flexDirection: 'column', height: '420px' }}>
+                    {/* AI Chat - Placeholder for future */}
+                    <div className="panel panel-gold">
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
                             <Sparkles style={{ width: '16px', height: '16px', color: 'var(--gold)' }} />
                             <p className="text-label text-gold">AURIC AI ASSISTANT</p>
                         </div>
 
-                        <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '1rem', marginBottom: '1rem' }}>
-                            {aiMessages.map((msg, i) => (
-                                <div key={i} style={{ display: 'flex', justifyContent: msg.role === 'user' ? 'flex-end' : 'flex-start' }}>
-                                    <div style={{
-                                        maxWidth: '90%',
-                                        padding: '0.875rem 1rem',
-                                        borderRadius: '12px',
-                                        background: msg.role === 'user' ? 'var(--gold-muted)' : 'var(--bg-tertiary)',
-                                        border: msg.role === 'user' ? 'none' : '1px solid var(--border-subtle)'
-                                    }}>
-                                        <p style={{
-                                            fontSize: '0.8125rem',
-                                            lineHeight: 1.6,
-                                            color: 'var(--text-secondary)',
-                                            whiteSpace: 'pre-wrap'
-                                        }}>
-                                            {msg.content}
-                                        </p>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
+                        <p className="text-body" style={{ marginBottom: '1rem' }}>
+                            AI-powered research assistance coming soon. Add your API key in settings to enable intelligent search and synthesis.
+                        </p>
 
-                        <div style={{ position: 'relative' }}>
-                            <input
-                                type="text"
-                                value={aiInput}
-                                onChange={(e) => setAiInput(e.target.value)}
-                                placeholder="Ask Auric AI..."
-                                className="input"
-                                style={{ paddingRight: '3rem' }}
-                            />
-                            <button style={{
-                                position: 'absolute',
-                                right: '0.75rem',
-                                top: '50%',
-                                transform: 'translateY(-50%)',
-                                background: 'none',
-                                border: 'none',
-                                cursor: 'pointer',
-                                color: 'var(--gold)'
-                            }}>
-                                <Send style={{ width: '16px', height: '16px' }} />
-                            </button>
+                        <div style={{ opacity: 0.5 }}>
+                            <div style={{ position: 'relative' }}>
+                                <input
+                                    type="text"
+                                    placeholder="Ask Auric AI..."
+                                    className="input"
+                                    disabled
+                                    style={{ paddingRight: '3rem' }}
+                                />
+                                <button disabled style={{
+                                    position: 'absolute',
+                                    right: '0.75rem',
+                                    top: '50%',
+                                    transform: 'translateY(-50%)',
+                                    background: 'none',
+                                    border: 'none',
+                                    color: 'var(--gold)'
+                                }}>
+                                    <Send style={{ width: '16px', height: '16px' }} />
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
