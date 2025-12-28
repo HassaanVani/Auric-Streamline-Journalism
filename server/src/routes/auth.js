@@ -71,8 +71,21 @@ router.post('/login', async (req, res) => {
         // Normalize email to lowercase
         const email = rawEmail.toLowerCase().trim();
 
-        // Find user
-        const user = await prisma.user.findUnique({ where: { email } });
+        // Find user - try lowercase first, then case-insensitive search for legacy accounts
+        let user = await prisma.user.findUnique({ where: { email } });
+
+        // If not found, search case-insensitively (for accounts created before normalization)
+        if (!user) {
+            user = await prisma.user.findFirst({
+                where: {
+                    email: {
+                        equals: email,
+                        mode: 'insensitive'
+                    }
+                }
+            });
+        }
+
         if (!user) {
             return res.status(401).json({ error: 'Invalid credentials' });
         }
