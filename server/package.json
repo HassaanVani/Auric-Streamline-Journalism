@@ -4,9 +4,15 @@
     "description": "Auric journalism platform backend API",
     "main": "src/index.js",
     "type": "module",
+    "engines": {
+        "node": ">=18.0.0"
+    },
     "scripts": {
         "start": "node src/index.js",
-        "dev": "node --watch src/index.js"
+        "dev": "node --watch src/index.js",
+        "build": "prisma generate",
+        "postinstall": "prisma generate",
+        "db:migrate": "prisma migrate deploy"
     },
     "dependencies": {
         "@prisma/client": "^6.19.1",
