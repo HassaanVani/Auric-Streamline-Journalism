@@ -14,6 +14,8 @@ import { ArticleDraft } from './pages/ArticleDraft';
 import { EditorialReview } from './pages/EditorialReview';
 import { Settings } from './pages/Settings';
 import { About } from './pages/About';
+import { Privacy } from './pages/Privacy';
+import { Terms } from './pages/Terms';
 import { Login } from './pages/Login';
 import { Register } from './pages/Register';
 
@@ -66,6 +68,8 @@ function AppRoutes() {
       {/* Public routes */}
       <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
       <Route path="/register" element={<PublicRoute><Register /></PublicRoute>} />
+      <Route path="/privacy" element={<Privacy />} />
+      <Route path="/terms" element={<Terms />} />
 
       {/* Protected routes */}
       <Route path="/" element={<ProtectedRoute><MainLayout /></ProtectedRoute>}>
