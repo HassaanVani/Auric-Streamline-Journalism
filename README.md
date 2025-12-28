@@ -18,25 +18,3 @@ Auric maps to the actual lifecycle of a story:
 *   **Writing & Review**: A clean editor for drafting, with a simple workflow to track status from draft to publication.
 *   **AI Assistance**: If you want it, you can plug in your own API key to help generate interview questions or draft emails. If you don't, it stays out of your way.
 
-## Running it locally
-
-If you want to run this on your own machine, you'll need Node.js and a Postgres database.
-
-1.  Clone the repository.
-2.  Set up the server:
-    ```bash
-    cd server
-    npm install
-    cp .env.example .env
-    # Update .env with your database URL
-    npx prisma migrate dev
-    npm start
-    ```
-3.  Set up the client in a matching terminal:
-    ```bash
-    cd client
-    npm install
-    npm run dev
-    ```
-
-The application should now be running at localhost:5173.
