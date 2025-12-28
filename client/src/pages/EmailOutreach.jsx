@@ -8,7 +8,6 @@ import {
     Copy,
     Check,
     Loader,
-    Mail,
     User
 } from 'lucide-react';
 
@@ -84,134 +83,134 @@ export function EmailOutreach() {
                 Back to Sources
             </Link>
 
-            <header className="page-header">
-                <h1 className="text-h1" style={{ marginBottom: '0.5rem' }}>Email Outreach</h1>
-                <p className="text-body">Draft outreach emails to your sources.</p>
+            <header className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem' }}>
+                <div>
+                    <h1 className="text-h1" style={{ marginBottom: '0.5rem' }}>Email Outreach</h1>
+                    <p className="text-body">Draft outreach emails to your sources.</p>
+                </div>
+                {/* AI button in header */}
+                <Link to="/settings" style={{ textDecoration: 'none' }}>
+                    <button className="btn btn-secondary" title="Enable AI email drafting in Settings">
+                        <Sparkles style={{ width: '16px', height: '16px', color: 'var(--gold)' }} />
+                        AI Draft
+                    </button>
+                </Link>
             </header>
 
-            <div className="grid-main">
-                {/* Email Composer */}
-                <div>
-                    {contacts.length === 0 ? (
-                        <div className="panel" style={{ textAlign: 'center', padding: '4rem 2rem' }}>
-                            <User style={{ width: '48px', height: '48px', color: 'var(--gold)', margin: '0 auto 1.5rem' }} />
-                            <h2 className="text-h2" style={{ marginBottom: '0.75rem' }}>No contacts yet</h2>
-                            <p className="text-body" style={{ maxWidth: '400px', margin: '0 auto 1.5rem' }}>
-                                Add contacts to your source list before drafting outreach emails.
-                            </p>
-                            <Link to="/contacts">
-                                <button className="btn btn-primary">
-                                    Go to Sources
-                                </button>
-                            </Link>
-                        </div>
-                    ) : (
-                        <>
-                            {/* Recipient selector */}
-                            <div style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem' }}>
-                                <div style={{ flex: 1 }}>
-                                    <label className="text-label" style={{ display: 'block', marginBottom: '0.5rem' }}>To</label>
-                                    <select
-                                        value={selectedContact?.id || ''}
-                                        onChange={(e) => handleSelectContact(e.target.value)}
-                                        className="input"
-                                    >
-                                        <option value="">Select a contact</option>
-                                        {contacts.map(c => (
-                                            <option key={c.id} value={c.id}>
-                                                {c.name} {c.email ? `(${c.email})` : ''}
-                                            </option>
-                                        ))}
-                                    </select>
-                                </div>
-                                <div style={{ minWidth: '200px' }}>
-                                    <label className="text-label" style={{ display: 'block', marginBottom: '0.5rem' }}>Story</label>
-                                    <select
-                                        value={selectedStory}
-                                        onChange={(e) => setSelectedStory(e.target.value)}
-                                        className="input"
-                                    >
-                                        <option value="">Select a story</option>
-                                        {stories.map(s => (
-                                            <option key={s.id} value={s.id}>{s.title}</option>
-                                        ))}
-                                    </select>
-                                </div>
-                            </div>
-
-                            {/* Subject */}
-                            <div style={{ marginBottom: '1rem' }}>
-                                <label className="text-label" style={{ display: 'block', marginBottom: '0.5rem' }}>Subject</label>
-                                <input
-                                    type="text"
-                                    value={subject}
-                                    onChange={(e) => setSubject(e.target.value)}
-                                    placeholder="Interview request regarding..."
-                                    className="input"
-                                />
-                            </div>
-
-                            {/* Body */}
-                            <div style={{ marginBottom: '1.5rem' }}>
-                                <label className="text-label" style={{ display: 'block', marginBottom: '0.5rem' }}>Message</label>
-                                <textarea
-                                    value={body}
-                                    onChange={(e) => setBody(e.target.value)}
-                                    placeholder="Write your email here..."
-                                    className="input"
-                                    rows={12}
-                                    style={{ resize: 'vertical' }}
-                                />
-                            </div>
-
-                            {/* Actions */}
-                            <div style={{ display: 'flex', gap: '0.75rem' }}>
-                                <button onClick={handleCopy} className="btn btn-secondary">
-                                    {copied ? <Check style={{ width: '16px', height: '16px' }} /> : <Copy style={{ width: '16px', height: '16px' }} />}
-                                    {copied ? 'Copied!' : 'Copy'}
-                                </button>
-                                <button
-                                    onClick={handleOpenMailClient}
-                                    disabled={!selectedContact?.email}
-                                    className="btn btn-primary"
-                                >
-                                    <Send style={{ width: '16px', height: '16px' }} />
-                                    Open in Mail Client
-                                </button>
-                            </div>
-                        </>
-                    )}
+            {contacts.length === 0 ? (
+                <div className="panel" style={{ textAlign: 'center', padding: '3rem 2rem' }}>
+                    <User style={{ width: '40px', height: '40px', color: 'var(--gold)', margin: '0 auto 1rem' }} />
+                    <h2 className="text-h3" style={{ marginBottom: '0.5rem' }}>No contacts yet</h2>
+                    <p className="text-body" style={{ maxWidth: '400px', margin: '0 auto 1.5rem' }}>
+                        Add contacts to your source list before drafting outreach emails.
+                    </p>
+                    <Link to="/contacts">
+                        <button className="btn btn-primary">
+                            Go to Sources
+                        </button>
+                    </Link>
                 </div>
+            ) : (
+                <div style={{ maxWidth: '700px' }}>
+                    {/* Recipient + Story selectors in one row */}
+                    <div style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem', flexWrap: 'wrap' }}>
+                        <div style={{ flex: 2, minWidth: '200px' }}>
+                            <label className="text-label" style={{ display: 'block', marginBottom: '0.5rem' }}>To</label>
+                            <select
+                                value={selectedContact?.id || ''}
+                                onChange={(e) => handleSelectContact(e.target.value)}
+                                className="input"
+                            >
+                                <option value="">Select a contact</option>
+                                {contacts.map(c => (
+                                    <option key={c.id} value={c.id}>
+                                        {c.name} {c.email ? `(${c.email})` : ''}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
+                        <div style={{ flex: 1, minWidth: '160px' }}>
+                            <label className="text-label" style={{ display: 'block', marginBottom: '0.5rem' }}>Story</label>
+                            <select
+                                value={selectedStory}
+                                onChange={(e) => setSelectedStory(e.target.value)}
+                                className="input"
+                            >
+                                <option value="">Select a story</option>
+                                {stories.map(s => (
+                                    <option key={s.id} value={s.id}>{s.title}</option>
+                                ))}
+                            </select>
+                        </div>
+                    </div>
 
-                {/* Sidebar */}
-                <div className="grid-sidebar">
+                    {/* Selected contact info inline */}
                     {selectedContact && (
-                        <div className="card" style={{ marginBottom: '1rem' }}>
-                            <p className="text-label" style={{ marginBottom: '0.75rem' }}>RECIPIENT</p>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                                <div className="avatar">{selectedContact.name.split(' ').map(n => n[0]).join('').slice(0, 2)}</div>
-                                <div>
-                                    <p style={{ fontWeight: 500, color: 'var(--text-primary)' }}>{selectedContact.name}</p>
-                                    <p className="text-small">{selectedContact.role} {selectedContact.org ? `at ${selectedContact.org}` : ''}</p>
-                                </div>
+                        <div style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '0.75rem',
+                            padding: '0.75rem 1rem',
+                            background: 'var(--bg-secondary)',
+                            borderRadius: '8px',
+                            marginBottom: '1.5rem'
+                        }}>
+                            <div className="avatar" style={{ width: '32px', height: '32px', fontSize: '0.75rem' }}>
+                                {selectedContact.name.split(' ').map(n => n[0]).join('').slice(0, 2)}
+                            </div>
+                            <div>
+                                <span style={{ fontWeight: 500, color: 'var(--text-primary)' }}>{selectedContact.name}</span>
+                                {selectedContact.role && (
+                                    <span className="text-small" style={{ marginLeft: '0.5rem' }}>
+                                        • {selectedContact.role} {selectedContact.org ? `at ${selectedContact.org}` : ''}
+                                    </span>
+                                )}
                             </div>
                         </div>
                     )}
 
-                    <div className="panel panel-gold">
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
-                            <Sparkles style={{ width: '16px', height: '16px', color: 'var(--gold)' }} />
-                            <span className="text-label text-gold">AI EMAIL DRAFTING</span>
-                        </div>
-                        <p className="text-body" style={{ marginBottom: '1rem' }}>
-                            Generate personalized outreach emails based on contact profiles and your story context.
-                        </p>
-                        <p className="text-small" style={{ opacity: 0.8 }}>
-                            Requires OpenAI API key. Configure in Settings → API Keys.
-                        </p>
+                    {/* Subject */}
+                    <div style={{ marginBottom: '1rem' }}>
+                        <label className="text-label" style={{ display: 'block', marginBottom: '0.5rem' }}>Subject</label>
+                        <input
+                            type="text"
+                            value={subject}
+                            onChange={(e) => setSubject(e.target.value)}
+                            placeholder="Interview request regarding..."
+                            className="input"
+                        />
+                    </div>
+
+                    {/* Body */}
+                    <div style={{ marginBottom: '1.5rem' }}>
+                        <label className="text-label" style={{ display: 'block', marginBottom: '0.5rem' }}>Message</label>
+                        <textarea
+                            value={body}
+                            onChange={(e) => setBody(e.target.value)}
+                            placeholder="Write your email here..."
+                            className="input"
+                            rows={10}
+                            style={{ resize: 'vertical' }}
+                        />
+                    </div>
+
+                    {/* Actions */}
+                    <div style={{ display: 'flex', gap: '0.75rem' }}>
+                        <button onClick={handleCopy} className="btn btn-secondary">
+                            {copied ? <Check style={{ width: '16px', height: '16px' }} /> : <Copy style={{ width: '16px', height: '16px' }} />}
+                            {copied ? 'Copied!' : 'Copy'}
+                        </button>
+                        <button
+                            onClick={handleOpenMailClient}
+                            disabled={!selectedContact?.email}
+                            className="btn btn-primary"
+                        >
+                            <Send style={{ width: '16px', height: '16px' }} />
+                            Open in Mail Client
+                        </button>
                     </div>
                 </div>
-            </div>
+            )}
         </div>
     );
 }
