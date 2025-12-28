@@ -1,5 +1,10 @@
 # Changelog
 
+## Tiberius 1.0.1 (2025-12-28)
+
+### Documentation
+- **README**: Added a human-readable explanation of the project's philosophy and setup instructions.
+
 ## Augustus 1.0.0 (2025-12-28)
 
 ### Features
