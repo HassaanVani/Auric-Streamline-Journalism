@@ -15,6 +15,7 @@ import {
     PenTool,
     CheckCircle,
     Settings,
+    HelpCircle,
     Plus,
     LogOut
 } from 'lucide-react';
@@ -116,6 +117,13 @@ export function Sidebar() {
                         <div className="nav-link">
                             <Settings style={{ width: '18px', height: '18px' }} />
                             <span>Settings</span>
+                        </div>
+                    </NavLink>
+
+                    <NavLink to="/about" style={{ textDecoration: 'none' }}>
+                        <div className="nav-link">
+                            <HelpCircle style={{ width: '18px', height: '18px' }} />
+                            <span>Help & About</span>
                         </div>
                     </NavLink>
 

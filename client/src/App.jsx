@@ -13,6 +13,7 @@ import { Transcripts } from './pages/Transcripts';
 import { ArticleDraft } from './pages/ArticleDraft';
 import { EditorialReview } from './pages/EditorialReview';
 import { Settings } from './pages/Settings';
+import { About } from './pages/About';
 import { Login } from './pages/Login';
 import { Register } from './pages/Register';
 
@@ -80,6 +81,7 @@ function AppRoutes() {
         <Route path="drafts" element={<ArticleDraft />} />
         <Route path="review" element={<EditorialReview />} />
         <Route path="settings" element={<Settings />} />
+        <Route path="about" element={<About />} />
       </Route>
     </Routes>
   );

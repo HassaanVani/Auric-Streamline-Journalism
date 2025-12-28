@@ -83,7 +83,8 @@ export function MainLayout() {
                                 style={{ position: 'relative' }}
                             >
                                 <Bell style={{ width: '20px', height: '20px' }} />
-                                <span style={{
+                                {/* Notification dot - only show when there are notifications */}
+                                {/* <span style={{
                                     position: 'absolute',
                                     top: '4px',
                                     right: '4px',
@@ -91,7 +92,7 @@ export function MainLayout() {
                                     height: '8px',
                                     background: 'var(--gold)',
                                     borderRadius: '50%'
-                                }} />
+                                }} /> */}
                             </button>
 
                             {/* Notifications Dropdown */}
