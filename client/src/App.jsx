@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { MainLayout } from './layouts/MainLayout';
 import { Dashboard } from './pages/Dashboard';
+import { Stories } from './pages/Stories';
 import { Research } from './pages/Research';
 import { Contacts } from './pages/Contacts';
 import { ContactProfile } from './pages/ContactProfile';
@@ -68,6 +69,7 @@ function AppRoutes() {
       {/* Protected routes */}
       <Route path="/" element={<ProtectedRoute><MainLayout /></ProtectedRoute>}>
         <Route index element={<Dashboard />} />
+        <Route path="stories" element={<Stories />} />
         <Route path="research" element={<Research />} />
         <Route path="contacts" element={<Contacts />} />
         <Route path="contacts/:id" element={<ContactProfile />} />

@@ -5,6 +5,7 @@ import { NewStoryModal } from './NewStoryModal';
 import { useApi } from '../hooks/useApi';
 import {
     LayoutDashboard,
+    FolderOpen,
     Search,
     Users,
     Mail,
@@ -20,6 +21,7 @@ import {
 
 const navItems = [
     { path: '/', icon: LayoutDashboard, label: 'Home' },
+    { path: '/stories', icon: FolderOpen, label: 'Stories' },
     { path: '/research', icon: Search, label: 'Research' },
     { path: '/contacts', icon: Users, label: 'Sources' },
     { path: '/email', icon: Mail, label: 'Outreach' },

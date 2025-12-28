@@ -9,11 +9,14 @@ const router = Router();
 // Register new user
 router.post('/register', async (req, res) => {
     try {
-        const { email, password, name } = req.body;
+        const { email: rawEmail, password, name } = req.body;
 
-        if (!email || !password || !name) {
+        if (!rawEmail || !password || !name) {
             return res.status(400).json({ error: 'Email, password, and name are required' });
         }
+
+        // Normalize email to lowercase
+        const email = rawEmail.toLowerCase().trim();
 
         // Check if user exists
         const existingUser = await prisma.user.findUnique({ where: { email } });
@@ -59,11 +62,14 @@ router.post('/register', async (req, res) => {
 // Login
 router.post('/login', async (req, res) => {
     try {
-        const { email, password } = req.body;
+        const { email: rawEmail, password } = req.body;
 
-        if (!email || !password) {
+        if (!rawEmail || !password) {
             return res.status(400).json({ error: 'Email and password are required' });
         }
+
+        // Normalize email to lowercase
+        const email = rawEmail.toLowerCase().trim();
 
         // Find user
         const user = await prisma.user.findUnique({ where: { email } });
