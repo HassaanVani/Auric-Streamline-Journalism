@@ -1,52 +1,56 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import { useApi } from '../hooks/useApi';
 import {
     ArrowLeft,
     Sparkles,
-    RefreshCw,
-    Edit,
-    Save,
+    Plus,
+    Trash2,
+    Loader,
+    MessageSquare,
     Copy,
-    Check,
-    Plus
+    Check
 } from 'lucide-react';
 
-const context = {
-    contact: { name: 'Dr. Sarah Chen', role: 'Climate Scientist, UC Berkeley' },
-    story: 'Climate Policy Reform in California',
-    topics: ['AB 32', 'Cap-and-Trade', 'Community Impact'],
-};
-
-const sampleQuestions = [
-    {
-        category: 'Background',
-        question: "Can you walk me through your research on California's cap-and-trade system?",
-        followUp: 'What surprised you most during your research?',
-        priority: 'high',
-    },
-    {
-        category: 'Analysis',
-        question: 'How would you assess the overall effectiveness of AB 32?',
-        followUp: 'What metrics do you consider most important?',
-        priority: 'high',
-    },
-    {
-        category: 'Impact',
-        question: 'What impacts have you observed on local communities?',
-        followUp: 'Have there been unintended consequences?',
-        priority: 'medium',
-    },
-];
-
 export function Questions() {
-    const [questions] = useState(sampleQuestions);
-    const [isGenerating, setIsGenerating] = useState(false);
-    const [copiedIdx, setCopiedIdx] = useState(null);
-    const [researchGaps, setResearchGaps] = useState('');
+    const api = useApi();
+    const [stories, setStories] = useState([]);
+    const [contacts, setContacts] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [selectedStory, setSelectedStory] = useState('');
+    const [selectedContact, setSelectedContact] = useState('');
 
-    const handleGenerate = () => {
-        setIsGenerating(true);
-        setTimeout(() => setIsGenerating(false), 2000);
+    const [questions, setQuestions] = useState([]);
+    const [newQuestion, setNewQuestion] = useState('');
+    const [copiedIdx, setCopiedIdx] = useState(null);
+
+    useEffect(() => {
+        loadData();
+    }, []);
+
+    const loadData = async () => {
+        try {
+            const [storiesData, contactsData] = await Promise.all([
+                api.get('/stories'),
+                api.get('/contacts')
+            ]);
+            setStories(storiesData);
+            setContacts(contactsData);
+        } catch (err) {
+            console.error('Failed to load:', err);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleAddQuestion = () => {
+        if (!newQuestion.trim()) return;
+        setQuestions([...questions, { id: Date.now(), text: newQuestion.trim(), category: 'Custom' }]);
+        setNewQuestion('');
+    };
+
+    const handleDeleteQuestion = (id) => {
+        setQuestions(questions.filter(q => q.id !== id));
     };
 
     const handleCopy = (idx, text) => {
@@ -55,9 +59,22 @@ export function Questions() {
         setTimeout(() => setCopiedIdx(null), 2000);
     };
 
+    const copyAll = () => {
+        const allQuestions = questions.map((q, i) => `${i + 1}. ${q.text}`).join('\n');
+        navigator.clipboard.writeText(allQuestions);
+    };
+
+    if (loading) {
+        return (
+            <div className="page-container" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '50vh' }}>
+                <Loader style={{ width: '24px', height: '24px', color: 'var(--gold)', animation: 'spin 1s linear infinite' }} />
+            </div>
+        );
+    }
+
     return (
         <div className="page-container">
-            <Link to="/contacts/1" style={{
+            <Link to="/contacts" style={{
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: '0.5rem',
@@ -67,141 +84,129 @@ export function Questions() {
                 marginBottom: '2rem'
             }}>
                 <ArrowLeft style={{ width: '16px', height: '16px' }} />
-                Back to Contact
+                Back to Sources
             </Link>
 
             <header className="page-header">
                 <h1 className="text-h1" style={{ marginBottom: '0.5rem' }}>Interview Questions</h1>
-                <p className="text-body">AI-generated questions for your interview with {context.contact.name}</p>
+                <p className="text-body">Create and organize questions for your interviews.</p>
             </header>
 
+            {/* Context selectors */}
+            <div style={{ display: 'flex', gap: '1rem', marginBottom: '2rem' }}>
+                <div style={{ minWidth: '200px' }}>
+                    <label className="text-label" style={{ display: 'block', marginBottom: '0.5rem' }}>Story</label>
+                    <select
+                        value={selectedStory}
+                        onChange={(e) => setSelectedStory(e.target.value)}
+                        className="input"
+                    >
+                        <option value="">Select a story</option>
+                        {stories.map(s => (
+                            <option key={s.id} value={s.id}>{s.title}</option>
+                        ))}
+                    </select>
+                </div>
+                <div style={{ minWidth: '200px' }}>
+                    <label className="text-label" style={{ display: 'block', marginBottom: '0.5rem' }}>Contact</label>
+                    <select
+                        value={selectedContact}
+                        onChange={(e) => setSelectedContact(e.target.value)}
+                        className="input"
+                    >
+                        <option value="">Select a contact</option>
+                        {contacts.map(c => (
+                            <option key={c.id} value={c.id}>{c.name}</option>
+                        ))}
+                    </select>
+                </div>
+            </div>
+
             <div className="grid-main">
+                {/* Questions List */}
                 <div>
-                    {/* Research Gaps */}
-                    <div className="card" style={{ marginBottom: '2rem' }}>
-                        <p className="text-label" style={{ marginBottom: '0.625rem' }}>RESEARCH GAPS</p>
-                        <textarea
-                            value={researchGaps}
-                            onChange={(e) => setResearchGaps(e.target.value)}
-                            rows={3}
-                            placeholder="E.g., Need more data on community-level impacts..."
+                    {/* Add question */}
+                    <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '2rem' }}>
+                        <input
+                            type="text"
+                            value={newQuestion}
+                            onChange={(e) => setNewQuestion(e.target.value)}
+                            onKeyDown={(e) => e.key === 'Enter' && handleAddQuestion()}
+                            placeholder="Type a question..."
                             className="input"
-                            style={{ resize: 'vertical', marginBottom: '1rem' }}
+                            style={{ flex: 1 }}
                         />
-                        <button
-                            onClick={handleGenerate}
-                            disabled={isGenerating}
-                            className="btn btn-primary"
-                            style={{ width: '100%' }}
-                        >
-                            {isGenerating ? (
-                                <>
-                                    <RefreshCw style={{ width: '16px', height: '16px', animation: 'spin 1s linear infinite' }} />
-                                    Generating...
-                                </>
-                            ) : (
-                                <>
-                                    <Sparkles style={{ width: '16px', height: '16px' }} />
-                                    Generate Questions
-                                </>
-                            )}
+                        <button onClick={handleAddQuestion} disabled={!newQuestion.trim()} className="btn btn-primary">
+                            <Plus style={{ width: '16px', height: '16px' }} />
+                            Add
                         </button>
                     </div>
 
-                    {/* Questions */}
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                        {questions.map((q, idx) => (
-                            <div key={idx} className="card">
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem', marginBottom: '0.75rem' }}>
-                                    <span className="text-mono text-muted">{String(idx + 1).padStart(2, '0')}</span>
-                                    <span className="badge">{q.category}</span>
-                                    <span className={`badge ${q.priority === 'high' ? 'badge-gold' : ''}`}>{q.priority}</span>
-                                    <div style={{ marginLeft: 'auto', display: 'flex', gap: '0.25rem' }}>
-                                        <button
-                                            className="btn-ghost"
-                                            onClick={() => handleCopy(idx, q.question)}
-                                            style={{ padding: '0.375rem' }}
-                                        >
-                                            {copiedIdx === idx
-                                                ? <Check style={{ width: '16px', height: '16px', color: 'var(--success)' }} />
-                                                : <Copy style={{ width: '16px', height: '16px' }} />
-                                            }
-                                        </button>
-                                        <button className="btn-ghost" style={{ padding: '0.375rem' }}>
-                                            <Edit style={{ width: '16px', height: '16px' }} />
-                                        </button>
-                                    </div>
+                    {questions.length === 0 ? (
+                        <div className="panel" style={{ textAlign: 'center', padding: '4rem 2rem' }}>
+                            <MessageSquare style={{ width: '48px', height: '48px', color: 'var(--gold)', margin: '0 auto 1.5rem' }} />
+                            <h2 className="text-h2" style={{ marginBottom: '0.75rem' }}>No questions yet</h2>
+                            <p className="text-body" style={{ maxWidth: '400px', margin: '0 auto 1.5rem' }}>
+                                Add interview questions manually, or connect your AI API key for intelligent question generation based on your research.
+                            </p>
+                            <div className="panel panel-gold" style={{ display: 'inline-block', padding: '1rem 1.5rem', textAlign: 'left' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                                    <Sparkles style={{ width: '16px', height: '16px', color: 'var(--gold)' }} />
+                                    <span className="text-label text-gold">AI GENERATION</span>
                                 </div>
-
-                                <p style={{ fontSize: '1.0625rem', color: 'var(--text-primary)', lineHeight: 1.5, marginBottom: '1rem' }}>
-                                    {q.question}
-                                </p>
-
-                                {q.followUp && (
-                                    <div style={{ paddingLeft: '1rem', borderLeft: '2px solid var(--gold)', opacity: 0.9 }}>
-                                        <p className="text-small text-gold" style={{ marginBottom: '0.25rem' }}>Follow-up</p>
-                                        <p className="text-small" style={{ color: 'var(--text-secondary)' }}>{q.followUp}</p>
-                                    </div>
-                                )}
+                                <p className="text-small">Add your OpenAI API key in Settings to enable AI-powered question generation.</p>
                             </div>
-                        ))}
-                    </div>
-
-                    {/* Add Question */}
-                    <button style={{
-                        width: '100%',
-                        padding: '1.25rem',
-                        marginTop: '1rem',
-                        border: '1px dashed var(--border-default)',
-                        borderRadius: '12px',
-                        background: 'transparent',
-                        color: 'var(--text-muted)',
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        gap: '0.5rem',
-                        fontSize: '0.875rem'
-                    }}>
-                        <Plus style={{ width: '16px', height: '16px' }} />
-                        Add custom question
-                    </button>
+                        </div>
+                    ) : (
+                        <>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                                <span className="text-label">{questions.length} QUESTIONS</span>
+                                <button onClick={copyAll} className="btn btn-secondary" style={{ fontSize: '0.8125rem' }}>
+                                    <Copy style={{ width: '14px', height: '14px' }} />
+                                    Copy All
+                                </button>
+                            </div>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                                {questions.map((q, idx) => (
+                                    <div key={q.id} className="card">
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '1rem' }}>
+                                            <div style={{ flex: 1 }}>
+                                                <span className="text-mono text-gold" style={{ marginRight: '0.75rem' }}>{idx + 1}.</span>
+                                                <span style={{ color: 'var(--text-primary)' }}>{q.text}</span>
+                                            </div>
+                                            <div style={{ display: 'flex', gap: '0.5rem' }}>
+                                                <button onClick={() => handleCopy(idx, q.text)} className="btn-ghost" style={{ padding: '0.375rem' }}>
+                                                    {copiedIdx === idx ? (
+                                                        <Check style={{ width: '16px', height: '16px', color: 'var(--success)' }} />
+                                                    ) : (
+                                                        <Copy style={{ width: '16px', height: '16px' }} />
+                                                    )}
+                                                </button>
+                                                <button onClick={() => handleDeleteQuestion(q.id)} className="btn-ghost" style={{ padding: '0.375rem' }}>
+                                                    <Trash2 style={{ width: '16px', height: '16px' }} />
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </>
+                    )}
                 </div>
 
                 {/* Sidebar */}
                 <div className="grid-sidebar">
-                    <div className="card">
-                        <p className="text-label" style={{ marginBottom: '1rem' }}>INTERVIEW CONTEXT</p>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                            <div>
-                                <p className="text-small text-muted" style={{ marginBottom: '0.25rem' }}>Source</p>
-                                <p style={{ fontSize: '0.9375rem', color: 'var(--text-primary)', fontWeight: 500 }}>
-                                    {context.contact.name}
-                                </p>
-                                <p className="text-small">{context.contact.role}</p>
-                            </div>
-                            <div>
-                                <p className="text-small text-muted" style={{ marginBottom: '0.25rem' }}>Story</p>
-                                <p className="text-small" style={{ color: 'var(--text-primary)' }}>{context.story}</p>
-                            </div>
-                            <div>
-                                <p className="text-small text-muted" style={{ marginBottom: '0.5rem' }}>Topics</p>
-                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.375rem' }}>
-                                    {context.topics.map((t) => <span key={t} className="badge">{t}</span>)}
-                                </div>
-                            </div>
+                    <div className="panel panel-gold">
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
+                            <Sparkles style={{ width: '16px', height: '16px', color: 'var(--gold)' }} />
+                            <span className="text-label text-gold">AI QUESTION GENERATOR</span>
                         </div>
-                    </div>
-
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                        <button className="btn btn-secondary" style={{ width: '100%' }}>
-                            <Save style={{ width: '16px', height: '16px' }} />
-                            Save Questions
-                        </button>
-                        <button className="btn btn-secondary" style={{ width: '100%' }}>
-                            <Copy style={{ width: '16px', height: '16px' }} />
-                            Copy All
-                        </button>
+                        <p className="text-body" style={{ marginBottom: '1rem' }}>
+                            Generate tailored interview questions based on your research and contact's expertise.
+                        </p>
+                        <p className="text-small" style={{ opacity: 0.8 }}>
+                            Requires OpenAI API key. Configure in Settings → API Keys.
+                        </p>
                     </div>
                 </div>
             </div>

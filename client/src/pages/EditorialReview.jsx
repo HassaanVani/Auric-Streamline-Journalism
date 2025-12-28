@@ -1,220 +1,180 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useApi } from '../hooks/useApi';
 import {
-    Edit,
     CheckCircle,
-    Lightbulb,
-    Download,
-    Share2,
-    Eye,
-    Type,
     FileText,
-    Send
+    Send,
+    Loader,
+    Sparkles,
+    Clock
 } from 'lucide-react';
 
-const styleSuggestions = [
-    { id: 1, type: 'clarity', original: 'The policy has been implemented in a manner that is quite effective.', suggestion: 'The policy has been effectively implemented.', reason: 'More concise' },
-    { id: 2, type: 'tone', original: 'Officials claim the results are good.', suggestion: 'Officials report positive results.', reason: 'More neutral' },
-];
-
-const readabilityMetrics = { grade: 'B+', readingLevel: '10th Grade', avgSentenceLength: 18, passiveVoice: '8%', wordCount: 1247 };
-
-const articleContent = `California's Bold Climate Agenda
-
-California has long positioned itself as a leader in environmental policy.
-
-The Cap-and-Trade Success Story
-
-According to Dr. Sarah Chen, "The cap-and-trade program has been remarkably successful."
-
-Community Impact
-
-But success at the policy level doesn't always translate to success on the ground.`;
-
 export function EditorialReview() {
-    const [activeTab, setActiveTab] = useState('edit');
-    const [content, setContent] = useState(articleContent);
-    const [appliedIds, setAppliedIds] = useState([]);
+    const api = useApi();
+    const [articles, setArticles] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [selectedArticle, setSelectedArticle] = useState(null);
 
-    const applySuggestion = (id, original, suggestion) => {
-        setContent(content.replace(original, suggestion));
-        setAppliedIds([...appliedIds, id]);
+    useEffect(() => {
+        loadArticles();
+    }, []);
+
+    const loadArticles = async () => {
+        try {
+            const data = await api.get('/articles');
+            setArticles(data);
+            // Auto-select first article if any
+            if (data.length > 0) {
+                setSelectedArticle(data[0]);
+            }
+        } catch (err) {
+            console.error('Failed to load articles:', err);
+        } finally {
+            setLoading(false);
+        }
     };
+
+    const handleStatusChange = async (articleId, newStatus) => {
+        try {
+            const updated = await api.put(`/articles/${articleId}`, { status: newStatus });
+            setArticles(articles.map(a => a.id === articleId ? updated : a));
+            if (selectedArticle?.id === articleId) {
+                setSelectedArticle(updated);
+            }
+        } catch (err) {
+            console.error('Failed to update status:', err);
+        }
+    };
+
+    const getStatusBadge = (status) => {
+        const styles = {
+            draft: { bg: 'var(--bg-tertiary)', color: 'var(--text-dim)' },
+            review: { bg: 'var(--gold-muted)', color: 'var(--gold)' },
+            approved: { bg: 'rgba(46, 160, 67, 0.2)', color: 'var(--success)' },
+            published: { bg: 'rgba(46, 160, 67, 0.3)', color: 'var(--success)' }
+        };
+        const style = styles[status] || styles.draft;
+        return (
+            <span style={{
+                padding: '0.25rem 0.75rem',
+                borderRadius: '9999px',
+                fontSize: '0.75rem',
+                fontWeight: 500,
+                background: style.bg,
+                color: style.color,
+                textTransform: 'capitalize'
+            }}>
+                {status}
+            </span>
+        );
+    };
+
+    const formatDate = (dateString) => {
+        return new Date(dateString).toLocaleDateString('en-US', {
+            month: 'short', day: 'numeric', year: 'numeric'
+        });
+    };
+
+    if (loading) {
+        return (
+            <div className="page-container" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '50vh' }}>
+                <Loader style={{ width: '24px', height: '24px', color: 'var(--gold)', animation: 'spin 1s linear infinite' }} />
+            </div>
+        );
+    }
 
     return (
         <div className="page-container">
-            <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '2.5rem' }}>
-                <div>
-                    <h1 className="text-h1" style={{ marginBottom: '0.5rem' }}>Editorial Review</h1>
-                    <p className="text-body">Final editing with AI-assisted suggestions</p>
-                </div>
-                <div style={{ display: 'flex', gap: '0.75rem' }}>
-                    <button className="btn btn-secondary">
-                        <Share2 style={{ width: '16px', height: '16px' }} />
-                        Share
-                    </button>
-                    <button className="btn btn-secondary">
-                        <Download style={{ width: '16px', height: '16px' }} />
-                        Export
-                    </button>
-                    <button className="btn btn-primary">
-                        <Send style={{ width: '16px', height: '16px' }} />
-                        Publish
-                    </button>
-                </div>
+            <header className="page-header">
+                <h1 className="text-h1" style={{ marginBottom: '0.5rem' }}>Editorial Review</h1>
+                <p className="text-body">Review and approve article drafts before publishing.</p>
             </header>
 
-            <div className="grid-main">
-                <div>
-                    {/* Tabs */}
-                    <div className="tabs" style={{ marginBottom: '1rem' }}>
-                        {[
-                            { id: 'edit', label: 'Edit', icon: Edit },
-                            { id: 'preview', label: 'Preview', icon: Eye },
-                        ].map((tab) => (
-                            <button
-                                key={tab.id}
-                                onClick={() => setActiveTab(tab.id)}
-                                className={`tab ${activeTab === tab.id ? 'active' : ''}`}
-                                style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}
-                            >
-                                <tab.icon style={{ width: '14px', height: '14px' }} />
-                                {tab.label}
-                            </button>
-                        ))}
-                    </div>
-
-                    {/* Editor */}
-                    <div className="panel" style={{ marginBottom: '2rem', minHeight: '320px' }}>
-                        {activeTab === 'edit' && (
-                            <textarea
-                                value={content}
-                                onChange={(e) => setContent(e.target.value)}
-                                style={{
-                                    width: '100%',
-                                    height: '320px',
-                                    fontSize: '0.9375rem',
-                                    lineHeight: 1.7,
-                                    color: 'var(--text-secondary)',
-                                    background: 'transparent',
-                                    border: 'none',
-                                    outline: 'none',
-                                    resize: 'none'
-                                }}
-                            />
-                        )}
-
-                        {activeTab === 'preview' && (
-                            <div style={{ padding: '2rem', background: '#fafafa', borderRadius: '12px' }}>
-                                <article style={{ maxWidth: '560px', margin: '0 auto' }}>
-                                    {content.split('\n\n').map((para, i) => {
-                                        if (i === 0) return <h1 key={i} style={{ fontFamily: "'Newsreader', serif", fontSize: '2rem', fontWeight: 600, color: '#1a1a1a', marginBottom: '1.5rem' }}>{para}</h1>;
-                                        if (para.length < 40) return <h2 key={i} style={{ fontFamily: "'Newsreader', serif", fontSize: '1.25rem', fontWeight: 600, color: '#333', marginTop: '2rem', marginBottom: '1rem' }}>{para}</h2>;
-                                        return <p key={i} style={{ color: '#444', marginBottom: '1rem', lineHeight: 1.7 }}>{para}</p>;
-                                    })}
-                                </article>
-                            </div>
-                        )}
-                    </div>
-
-                    {/* Suggestions */}
-                    <div className="card">
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                <Lightbulb style={{ width: '16px', height: '16px', color: 'var(--gold)' }} />
-                                <span className="text-h3">Style Suggestions</span>
-                            </div>
-                            <span className="badge badge-gold">{styleSuggestions.length - appliedIds.length} remaining</span>
-                        </div>
-
+            {articles.length === 0 ? (
+                <div className="panel" style={{ textAlign: 'center', padding: '4rem 2rem' }}>
+                    <FileText style={{ width: '48px', height: '48px', color: 'var(--gold)', margin: '0 auto 1.5rem' }} />
+                    <h2 className="text-h2" style={{ marginBottom: '0.75rem' }}>No articles to review</h2>
+                    <p className="text-body" style={{ maxWidth: '400px', margin: '0 auto 1.5rem' }}>
+                        Create article drafts first, then submit them for editorial review.
+                    </p>
+                </div>
+            ) : (
+                <div className="grid-main">
+                    {/* Article List */}
+                    <div>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                            {styleSuggestions.filter(s => !appliedIds.includes(s.id)).map((s) => (
-                                <div key={s.id} className="card" style={{ background: 'var(--bg-tertiary)' }}>
-                                    <span className="badge badge-gold" style={{ marginBottom: '0.75rem' }}>{s.type}</span>
-                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', marginBottom: '1rem' }}>
-                                        <div>
-                                            <p className="text-small text-muted" style={{ marginBottom: '0.375rem' }}>Original</p>
-                                            <p className="text-small" style={{ textDecoration: 'line-through', color: 'var(--text-muted)' }}>{s.original}</p>
-                                        </div>
-                                        <div>
-                                            <p className="text-small text-muted" style={{ marginBottom: '0.375rem' }}>Suggestion</p>
-                                            <p className="text-small text-gold">{s.suggestion}</p>
-                                        </div>
-                                    </div>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                        <span className="text-small text-muted">{s.reason}</span>
-                                        <div style={{ display: 'flex', gap: '0.75rem' }}>
-                                            <button style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', background: 'none', border: 'none', cursor: 'pointer' }}>
-                                                Dismiss
-                                            </button>
-                                            <button className="btn btn-primary" style={{ padding: '0.5rem 1rem' }} onClick={() => applySuggestion(s.id, s.original, s.suggestion)}>
-                                                Apply
-                                            </button>
-                                        </div>
-                                    </div>
-                                </div>
-                            ))}
-
-                            {appliedIds.length === styleSuggestions.length && (
-                                <div style={{ textAlign: 'center', padding: '2.5rem' }}>
-                                    <CheckCircle style={{ width: '48px', height: '48px', color: 'var(--success)', margin: '0 auto 1rem' }} />
-                                    <p className="text-h3">All suggestions reviewed!</p>
-                                    <p className="text-small">Your article is ready for publication</p>
-                                </div>
-                            )}
-                        </div>
-                    </div>
-                </div>
-
-                {/* Sidebar */}
-                <div className="grid-sidebar">
-                    <div className="card">
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
-                            <Type style={{ width: '16px', height: '16px', color: 'var(--gold)' }} />
-                            <p className="text-label">READABILITY</p>
-                        </div>
-                        <div style={{ textAlign: 'center', marginBottom: '1.5rem' }}>
-                            <div style={{
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                width: '72px',
-                                height: '72px',
-                                borderRadius: '16px',
-                                background: 'linear-gradient(135deg, var(--gold) 0%, var(--gold-dark) 100%)',
-                                fontSize: '1.75rem',
-                                fontWeight: 700,
-                                color: 'var(--bg-primary)'
-                            }}>
-                                {readabilityMetrics.grade}
-                            </div>
-                        </div>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                            {Object.entries(readabilityMetrics).filter(([k]) => k !== 'grade').map(([key, val]) => (
-                                <div key={key} style={{ display: 'flex', justifyContent: 'space-between' }}>
-                                    <span className="text-small" style={{ textTransform: 'capitalize' }}>{key.replace(/([A-Z])/g, ' $1')}</span>
-                                    <span style={{ fontSize: '0.875rem', fontWeight: 500, color: 'var(--text-primary)' }}>{val}</span>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-
-                    <div className="card">
-                        <p className="text-label" style={{ marginBottom: '1rem' }}>EXPORT OPTIONS</p>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                            {['Word Document', 'PDF', 'Plain Text', 'HTML'].map((fmt) => (
-                                <button
-                                    key={fmt}
-                                    className="btn-ghost"
-                                    style={{ width: '100%', justifyContent: 'flex-start', padding: '0.75rem' }}
+                            {articles.map(article => (
+                                <div
+                                    key={article.id}
+                                    onClick={() => setSelectedArticle(article)}
+                                    className="card card-interactive"
+                                    style={{
+                                        cursor: 'pointer',
+                                        borderColor: selectedArticle?.id === article.id ? 'var(--gold)' : undefined
+                                    }}
                                 >
-                                    <FileText style={{ width: '16px', height: '16px', color: 'var(--text-muted)' }} />
-                                    {fmt}
-                                </button>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                                        <div>
+                                            <h3 style={{ fontSize: '1rem', fontWeight: 500, color: 'var(--text-primary)', marginBottom: '0.5rem' }}>
+                                                {article.title}
+                                            </h3>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                                                <span className="text-small">{article.story?.title}</span>
+                                                <span className="text-small" style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                                                    <Clock style={{ width: '12px', height: '12px' }} />
+                                                    {formatDate(article.updatedAt)}
+                                                </span>
+                                            </div>
+                                        </div>
+                                        {getStatusBadge(article.status)}
+                                    </div>
+                                    {article.content && (
+                                        <p className="text-small" style={{ marginTop: '0.75rem', opacity: 0.7 }}>
+                                            {article.content.substring(0, 150)}...
+                                        </p>
+                                    )}
+                                </div>
                             ))}
                         </div>
                     </div>
+
+                    {/* Sidebar - Article Actions */}
+                    <div className="grid-sidebar">
+                        {selectedArticle && (
+                            <div className="card">
+                                <p className="text-label" style={{ marginBottom: '1rem' }}>ARTICLE STATUS</p>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                                    {['draft', 'review', 'approved', 'published'].map(status => (
+                                        <button
+                                            key={status}
+                                            onClick={() => handleStatusChange(selectedArticle.id, status)}
+                                            className={`btn ${selectedArticle.status === status ? 'btn-primary' : 'btn-secondary'}`}
+                                            style={{ justifyContent: 'flex-start', textTransform: 'capitalize' }}
+                                        >
+                                            {status === 'approved' && <CheckCircle style={{ width: '16px', height: '16px' }} />}
+                                            {status === 'published' && <Send style={{ width: '16px', height: '16px' }} />}
+                                            {status}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
+                        <div className="panel panel-gold">
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
+                                <Sparkles style={{ width: '16px', height: '16px', color: 'var(--gold)' }} />
+                                <span className="text-label text-gold">AI REVIEW ASSISTANT</span>
+                            </div>
+                            <p className="text-body" style={{ marginBottom: '1rem' }}>
+                                Get AI-powered suggestions for style, clarity, and factual consistency.
+                            </p>
+                            <p className="text-small" style={{ opacity: 0.8 }}>
+                                Requires OpenAI API key. Configure in Settings → API Keys.
+                            </p>
+                        </div>
+                    </div>
                 </div>
-            </div>
+            )}
         </div>
     );
 }
