@@ -299,21 +299,107 @@ export function ContactProfile() {
                         </div>
                     </div>
 
-                    {/* Related Stories */}
-                    {contact.stories && contact.stories.length > 0 && (
-                        <div className="card">
-                            <p className="text-label" style={{ marginBottom: '1rem' }}>LINKED STORIES</p>
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                                {contact.stories.map((s) => (
-                                    <span key={s.id || s.story?.id} className="badge badge-gold">
-                                        {s.story?.title || s.title}
-                                    </span>
-                                ))}
-                            </div>
-                        </div>
-                    )}
+                    {/* Linked Stories */}
+                    <LinkedStoriesCard
+                        contact={contact}
+                        api={api}
+                        onUpdate={loadContact}
+                    />
                 </div>
             </div>
+        </div>
+    );
+}
+
+// Separate component for managing linked stories
+function LinkedStoriesCard({ contact, api, onUpdate }) {
+    const [stories, setStories] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [adding, setAdding] = useState(false);
+
+    useEffect(() => {
+        loadStories();
+    }, []);
+
+    const loadStories = async () => {
+        try {
+            const data = await api.get('/stories');
+            setStories(data);
+        } catch (err) {
+            console.error('Failed to load stories:', err);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const linkedStoryIds = contact.stories?.map(s => s.storyId) || [];
+
+    const handleLink = async (storyId) => {
+        setAdding(true);
+        try {
+            await api.post(`/contacts/${contact.id}/stories`, { storyId });
+            onUpdate();
+        } catch (err) {
+            console.error('Failed to link:', err);
+        } finally {
+            setAdding(false);
+        }
+    };
+
+    const handleUnlink = async (storyId) => {
+        try {
+            await api.del(`/contacts/${contact.id}/stories/${storyId}`);
+            onUpdate();
+        } catch (err) {
+            console.error('Failed to unlink:', err);
+        }
+    };
+
+    const unlinkedStories = stories.filter(s => !linkedStoryIds.includes(s.id));
+
+    return (
+        <div className="card">
+            <p className="text-label" style={{ marginBottom: '1rem' }}>LINKED STORIES</p>
+
+            {/* Current links */}
+            {contact.stories?.length > 0 ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginBottom: '1rem' }}>
+                    {contact.stories.map((s) => (
+                        <div key={s.storyId} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                            <span className="badge badge-gold">{s.story?.title}</span>
+                            <button
+                                onClick={() => handleUnlink(s.storyId)}
+                                className="btn-ghost"
+                                style={{ padding: '0.25rem', fontSize: '0.75rem', color: 'var(--text-dim)' }}
+                            >
+                                ✕
+                            </button>
+                        </div>
+                    ))}
+                </div>
+            ) : (
+                <p className="text-small" style={{ marginBottom: '1rem', color: 'var(--text-dim)' }}>
+                    Not linked to any stories yet
+                </p>
+            )}
+
+            {/* Add link */}
+            {!loading && unlinkedStories.length > 0 && (
+                <div>
+                    <select
+                        onChange={(e) => e.target.value && handleLink(e.target.value)}
+                        disabled={adding}
+                        className="input"
+                        style={{ width: '100%', fontSize: '0.8125rem' }}
+                        value=""
+                    >
+                        <option value="">+ Link to story...</option>
+                        {unlinkedStories.map(s => (
+                            <option key={s.id} value={s.id}>{s.title}</option>
+                        ))}
+                    </select>
+                </div>
+            )}
         </div>
     );
 }

@@ -132,4 +132,72 @@ router.delete('/:id', async (req, res) => {
     }
 });
 
+// Link contact to story
+router.post('/:id/stories', async (req, res) => {
+    try {
+        const { storyId } = req.body;
+
+        // Verify contact ownership
+        const contact = await prisma.contact.findFirst({
+            where: { id: req.params.id, userId: req.user.id }
+        });
+        if (!contact) {
+            return res.status(404).json({ error: 'Contact not found' });
+        }
+
+        // Verify story ownership
+        const story = await prisma.story.findFirst({
+            where: { id: storyId, userId: req.user.id }
+        });
+        if (!story) {
+            return res.status(404).json({ error: 'Story not found' });
+        }
+
+        // Create link (ignore if already exists)
+        const link = await prisma.storyContact.upsert({
+            where: {
+                storyId_contactId: { storyId, contactId: req.params.id }
+            },
+            create: {
+                storyId,
+                contactId: req.params.id
+            },
+            update: {},
+            include: {
+                story: { select: { id: true, title: true } }
+            }
+        });
+
+        res.status(201).json(link);
+    } catch (error) {
+        console.error('Link contact error:', error);
+        res.status(500).json({ error: 'Failed to link contact' });
+    }
+});
+
+// Unlink contact from story
+router.delete('/:id/stories/:storyId', async (req, res) => {
+    try {
+        // Verify contact ownership
+        const contact = await prisma.contact.findFirst({
+            where: { id: req.params.id, userId: req.user.id }
+        });
+        if (!contact) {
+            return res.status(404).json({ error: 'Contact not found' });
+        }
+
+        await prisma.storyContact.deleteMany({
+            where: {
+                storyId: req.params.storyId,
+                contactId: req.params.id
+            }
+        });
+
+        res.json({ message: 'Contact unlinked from story' });
+    } catch (error) {
+        console.error('Unlink contact error:', error);
+        res.status(500).json({ error: 'Failed to unlink contact' });
+    }
+});
+
 export default router;

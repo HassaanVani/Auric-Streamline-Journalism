@@ -8,32 +8,40 @@ import {
     ChevronRight,
     Sparkles,
     X,
-    Check,
-    AlertCircle
+    AlertCircle,
+    Filter,
+    Tag
 } from 'lucide-react';
 
 export function Contacts() {
     const api = useApi();
     const [contacts, setContacts] = useState([]);
+    const [stories, setStories] = useState([]);
     const [loading, setLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState('');
+    const [filterStory, setFilterStory] = useState('');
     const [showAddForm, setShowAddForm] = useState(false);
 
     // New contact form
     const [newContact, setNewContact] = useState({ name: '', email: '', role: '', org: '', location: '', expertise: '' });
+    const [newContactStories, setNewContactStories] = useState([]);
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState('');
 
     useEffect(() => {
-        loadContacts();
+        loadData();
     }, []);
 
-    const loadContacts = async () => {
+    const loadData = async () => {
         try {
-            const data = await api.get('/contacts');
-            setContacts(data);
+            const [contactsData, storiesData] = await Promise.all([
+                api.get('/contacts'),
+                api.get('/stories')
+            ]);
+            setContacts(contactsData);
+            setStories(storiesData);
         } catch (err) {
-            console.error('Failed to load contacts:', err);
+            console.error('Failed to load:', err);
         } finally {
             setLoading(false);
         }
@@ -51,8 +59,17 @@ export function Contacts() {
 
         try {
             const created = await api.post('/contacts', newContact);
-            setContacts([created, ...contacts]);
+
+            // Link to selected stories
+            for (const storyId of newContactStories) {
+                await api.post(`/contacts/${created.id}/stories`, { storyId });
+            }
+
+            // Reload to get updated stories
+            const updated = await api.get(`/contacts/${created.id}`);
+            setContacts([updated, ...contacts]);
             setNewContact({ name: '', email: '', role: '', org: '', location: '', expertise: '' });
+            setNewContactStories([]);
             setShowAddForm(false);
         } catch (err) {
             setError(err.message);
@@ -61,11 +78,24 @@ export function Contacts() {
         }
     };
 
-    const filteredContacts = contacts.filter(c =>
-        c.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        c.org?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        c.role?.toLowerCase().includes(searchQuery.toLowerCase())
-    );
+    const toggleStoryForNewContact = (storyId) => {
+        if (newContactStories.includes(storyId)) {
+            setNewContactStories(newContactStories.filter(id => id !== storyId));
+        } else {
+            setNewContactStories([...newContactStories, storyId]);
+        }
+    };
+
+    const filteredContacts = contacts.filter(c => {
+        const matchesSearch = c.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            c.org?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            c.role?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            c.expertise?.toLowerCase().includes(searchQuery.toLowerCase());
+
+        const matchesStory = !filterStory || c.stories?.some(s => s.storyId === filterStory);
+
+        return matchesSearch && matchesStory;
+    });
 
     const getInitials = (name) => name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
 
@@ -88,8 +118,8 @@ export function Contacts() {
             </header>
 
             {/* Actions */}
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', marginBottom: '2rem' }}>
-                <div style={{ position: 'relative', flex: 1, maxWidth: '400px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '2rem', flexWrap: 'wrap' }}>
+                <div style={{ position: 'relative', flex: 1, minWidth: '200px', maxWidth: '300px' }}>
                     <Search style={{
                         position: 'absolute',
                         left: '1rem',
@@ -109,10 +139,28 @@ export function Contacts() {
                     />
                 </div>
 
-                <button onClick={() => setShowAddForm(true)} className="btn btn-primary">
-                    <Plus style={{ width: '16px', height: '16px' }} />
-                    Add Contact
-                </button>
+                {/* Story Filter */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <Filter style={{ width: '16px', height: '16px', color: 'var(--text-dim)' }} />
+                    <select
+                        value={filterStory}
+                        onChange={(e) => setFilterStory(e.target.value)}
+                        className="input"
+                        style={{ minWidth: '180px' }}
+                    >
+                        <option value="">All stories</option>
+                        {stories.map(s => (
+                            <option key={s.id} value={s.id}>{s.title}</option>
+                        ))}
+                    </select>
+                </div>
+
+                <div style={{ marginLeft: 'auto' }}>
+                    <button onClick={() => setShowAddForm(true)} className="btn btn-primary">
+                        <Plus style={{ width: '16px', height: '16px' }} />
+                        Add Contact
+                    </button>
+                </div>
             </div>
 
             {/* Add Contact Form */}
@@ -185,7 +233,7 @@ export function Contacts() {
                                 />
                             </div>
                             <div>
-                                <label className="text-label" style={{ display: 'block', marginBottom: '0.5rem' }}>Expertise</label>
+                                <label className="text-label" style={{ display: 'block', marginBottom: '0.5rem' }}>Expertise / Topics</label>
                                 <input
                                     type="text"
                                     value={newContact.expertise}
@@ -195,6 +243,34 @@ export function Contacts() {
                                 />
                             </div>
                         </div>
+
+                        {/* Link to Stories */}
+                        {stories.length > 0 && (
+                            <div style={{ marginBottom: '1.5rem' }}>
+                                <label className="text-label" style={{ display: 'block', marginBottom: '0.75rem' }}>
+                                    <Tag style={{ width: '14px', height: '14px', display: 'inline', marginRight: '0.5rem' }} />
+                                    Link to Stories
+                                </label>
+                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
+                                    {stories.map(story => (
+                                        <button
+                                            key={story.id}
+                                            type="button"
+                                            onClick={() => toggleStoryForNewContact(story.id)}
+                                            className={newContactStories.includes(story.id) ? 'badge badge-gold' : 'badge'}
+                                            style={{
+                                                cursor: 'pointer',
+                                                padding: '0.5rem 1rem',
+                                                border: newContactStories.includes(story.id) ? '1px solid var(--gold)' : '1px solid var(--border-subtle)'
+                                            }}
+                                        >
+                                            {story.title}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
                         <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end' }}>
                             <button type="button" onClick={() => setShowAddForm(false)} className="btn btn-secondary">Cancel</button>
                             <button type="submit" disabled={saving} className="btn btn-primary">
@@ -229,11 +305,13 @@ export function Contacts() {
                                 <div className="avatar-lg">{getInitials(contact.name)}</div>
 
                                 <div className="list-item-content">
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.375rem' }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.375rem', flexWrap: 'wrap' }}>
                                         <span className="list-item-title">{contact.name}</span>
-                                        {contact.stories?.length > 0 && (
-                                            <span className="badge badge-gold">{contact.stories.length} stories</span>
-                                        )}
+                                        {contact.stories?.map(s => (
+                                            <span key={s.storyId} className="badge badge-gold" style={{ fontSize: '0.6875rem' }}>
+                                                {s.story?.title}
+                                            </span>
+                                        ))}
                                     </div>
 
                                     {(contact.role || contact.org) && (
@@ -265,7 +343,16 @@ export function Contacts() {
             {/* No results */}
             {contacts.length > 0 && filteredContacts.length === 0 && (
                 <div className="panel" style={{ textAlign: 'center', padding: '3rem 2rem' }}>
-                    <p className="text-body">No contacts match "{searchQuery}"</p>
+                    <p className="text-body">No contacts match your filters</p>
+                    {filterStory && (
+                        <button
+                            onClick={() => setFilterStory('')}
+                            className="btn btn-secondary"
+                            style={{ marginTop: '1rem' }}
+                        >
+                            Clear story filter
+                        </button>
+                    )}
                 </div>
             )}
         </div>
