@@ -75,7 +75,8 @@ export function About() {
                 </p>
                 <p className="text-body" style={{ maxWidth: '600px', margin: '0 auto' }}>
                     Auric helps journalists organize their investigations from research to publication.
-                    Manage sources, track interviews, write drafts, and keep everything connected.
+                    Manage sources, track interviews, write drafts, and keep everything connected,
+                    integrating AI through the whole process to ensure consistency, accuracy, and integrity.
                 </p>
             </header>
 
