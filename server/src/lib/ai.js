@@ -1,6 +1,6 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
-const genAI = process.env.GEMINI_API_KEY 
+const genAI = process.env.GEMINI_API_KEY
     ? new GoogleGenerativeAI(process.env.GEMINI_API_KEY)
     : null;
 
@@ -18,14 +18,13 @@ function getModel(usePerplexity = false) {
 
 function getSearchModel() {
     if (!genAI) throw new Error('GEMINI_API_KEY not configured');
-    return genAI.getGenerativeModel({ 
+    return genAI.getGenerativeModel({
         model: 'gemini-2.0-flash',
-        tools: [{ googleSearch: {} }]
+        tools: [{ google_search: {} }]
     });
 }
 
 export async function searchResearch(query) {
-    const model = getSearchModel();
     const prompt = `You are a research assistant for investigative journalists. 
 Search for current, factual information about: "${query}"
 
@@ -37,20 +36,33 @@ Provide a comprehensive summary with:
 
 Format your response as structured research notes.`;
 
-    const result = await model.generateContent(prompt);
-    const response = result.response;
-    
-    const groundingMetadata = response.candidates?.[0]?.groundingMetadata;
-    const sources = groundingMetadata?.groundingChunks?.map(chunk => ({
-        title: chunk.web?.title || 'Source',
-        url: chunk.web?.uri || ''
-    })) || [];
+    try {
+        const model = getSearchModel();
+        const result = await model.generateContent(prompt);
+        const response = result.response;
 
-    return {
-        summary: response.text(),
-        sources,
-        searchedAt: new Date().toISOString()
-    };
+        const groundingMetadata = response.candidates?.[0]?.groundingMetadata;
+        const sources = groundingMetadata?.groundingChunks?.map(chunk => ({
+            title: chunk.web?.title || 'Source',
+            url: chunk.web?.uri || ''
+        })) || [];
+
+        return {
+            summary: response.text(),
+            sources,
+            searchedAt: new Date().toISOString()
+        };
+    } catch (error) {
+        console.error('Grounded search failed, falling back to standard:', error.message);
+        const model = getModel();
+        const result = await model.generateContent(prompt);
+        return {
+            summary: result.response.text(),
+            sources: [],
+            searchedAt: new Date().toISOString(),
+            fallback: true
+        };
+    }
 }
 
 export async function generateQuestions(contact, story, researchContext) {
@@ -73,13 +85,13 @@ Return as JSON array:
 
     const result = await model.generateContent(prompt);
     const text = result.response.text();
-    
+
     const jsonMatch = text.match(/\[[\s\S]*\]/);
     if (jsonMatch) {
         const questions = JSON.parse(jsonMatch[0]);
         return questions.map((q, i) => ({ id: i + 1, ...q }));
     }
-    
+
     return [{ id: 1, category: 'General', question: text, followUp: '', priority: 'medium' }];
 }
 
@@ -103,12 +115,12 @@ Return as JSON: {"subject": "...", "body": "..."}`;
 
     const result = await model.generateContent(prompt);
     const text = result.response.text();
-    
+
     const jsonMatch = text.match(/\{[\s\S]*\}/);
     if (jsonMatch) {
         return JSON.parse(jsonMatch[0]);
     }
-    
+
     return { subject: 'Interview Request', body: text };
 }
 
@@ -133,7 +145,7 @@ Return as JSON:
 
     const result = await model.generateContent(prompt);
     const text = result.response.text();
-    
+
     const jsonMatch = text.match(/\{[\s\S]*\}/);
     if (jsonMatch) {
         const parsed = JSON.parse(jsonMatch[0]);
@@ -142,7 +154,7 @@ Return as JSON:
             readability: parsed.readability || { grade: 'B', readingLevel: '10th Grade', avgSentenceLength: 18, passiveVoice: '10%' }
         };
     }
-    
+
     return {
         suggestions: [],
         readability: { grade: 'B', readingLevel: '10th Grade', avgSentenceLength: 18, passiveVoice: '10%' }
@@ -152,7 +164,7 @@ Return as JSON:
 export async function factCheck(claims) {
     const model = getSearchModel();
     const claimsList = Array.isArray(claims) ? claims : [claims];
-    
+
     const prompt = `You are a fact-checker for investigative journalism.
 
 Verify these claims using current, authoritative sources:
@@ -167,12 +179,12 @@ Return as JSON array:
 
     const result = await model.generateContent(prompt);
     const text = result.response.text();
-    
+
     const jsonMatch = text.match(/\[[\s\S]*\]/);
     if (jsonMatch) {
         return JSON.parse(jsonMatch[0]);
     }
-    
+
     return claimsList.map(claim => ({ claim, status: 'unverified', source: 'Pending verification' }));
 }
 

@@ -4,10 +4,9 @@ import {
     Search,
     Sparkles,
     Trash2,
-    Send,
     Folder,
-    Plus,
-    Loader
+    Loader,
+    ExternalLink
 } from 'lucide-react';
 
 export function Research() {
@@ -17,10 +16,8 @@ export function Research() {
     const [loading, setLoading] = useState(true);
     const [query, setQuery] = useState('');
     const [selectedStory, setSelectedStory] = useState('');
-    const [saving, setSaving] = useState(false);
-    const [aiQuery, setAiQuery] = useState('');
-    const [aiSearching, setAiSearching] = useState(false);
-    const [aiResults, setAiResults] = useState(null);
+    const [searching, setSearching] = useState(false);
+    const [currentResults, setCurrentResults] = useState(null);
 
     useEffect(() => {
         loadData();
@@ -44,42 +41,23 @@ export function Research() {
         }
     };
 
-    const handleSaveResearch = async () => {
+    const handleSearch = async () => {
         if (!query.trim()) return;
 
-        setSaving(true);
-        try {
-            const newResearch = await api.post('/research', {
-                query: query.trim(),
-                storyId: selectedStory || null,
-                results: null
-            });
-            setResearch([newResearch, ...research]);
-            setQuery('');
-        } catch (err) {
-            console.error('Failed to save research:', err);
-        } finally {
-            setSaving(false);
-        }
-    };
-
-    const handleAiSearch = async () => {
-        if (!aiQuery.trim()) return;
-
-        setAiSearching(true);
-        setAiResults(null);
+        setSearching(true);
+        setCurrentResults(null);
         try {
             const results = await api.post('/research/search', {
-                query: aiQuery.trim(),
+                query: query.trim(),
                 storyId: selectedStory || null
             });
-            setAiResults(results);
+            setCurrentResults(results);
             await loadData();
         } catch (err) {
-            console.error('AI search failed:', err);
-            setAiResults({ error: err.message || 'AI search failed' });
+            console.error('Search failed:', err);
+            setCurrentResults({ error: err.message || 'Search failed. Check API configuration.' });
         } finally {
-            setAiSearching(false);
+            setSearching(false);
         }
     };
 
@@ -112,13 +90,17 @@ export function Research() {
         <div className="page-container">
             <header className="page-header">
                 <h1 className="text-h1" style={{ marginBottom: '0.5rem' }}>Research</h1>
-                <p className="text-body">Save research queries and notes for your stories.</p>
+                <p className="text-body">AI-powered research for your investigations. Results are saved to your story.</p>
             </header>
 
-            <div style={{ marginBottom: '2rem' }}>
+            <div className="panel panel-gold" style={{ padding: '1.5rem', marginBottom: '2rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
+                    <Sparkles style={{ width: '18px', height: '18px', color: 'var(--gold)' }} />
+                    <span className="text-label text-gold">AURIC AI RESEARCH</span>
+                </div>
+
                 <div style={{ display: 'flex', gap: '1rem', alignItems: 'flex-end' }}>
                     <div style={{ flex: 1 }}>
-                        <label className="text-label" style={{ display: 'block', marginBottom: '0.5rem' }}>Research Query</label>
                         <div style={{ position: 'relative' }}>
                             <Search style={{
                                 position: 'absolute',
@@ -133,16 +115,16 @@ export function Research() {
                                 type="text"
                                 value={query}
                                 onChange={(e) => setQuery(e.target.value)}
-                                onKeyDown={(e) => e.key === 'Enter' && handleSaveResearch()}
-                                placeholder="What are you researching?"
+                                onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+                                placeholder="What would you like to research?"
                                 className="input"
-                                style={{ paddingLeft: '3rem' }}
+                                disabled={searching}
+                                style={{ paddingLeft: '3rem', fontSize: '1rem' }}
                             />
                         </div>
                     </div>
 
-                    <div style={{ minWidth: '200px' }}>
-                        <label className="text-label" style={{ display: 'block', marginBottom: '0.5rem' }}>Link to Story</label>
+                    <div style={{ minWidth: '180px' }}>
                         <select
                             value={selectedStory}
                             onChange={(e) => setSelectedStory(e.target.value)}
@@ -156,130 +138,107 @@ export function Research() {
                     </div>
 
                     <button
-                        onClick={handleSaveResearch}
-                        disabled={!query.trim() || saving}
+                        onClick={handleSearch}
+                        disabled={!query.trim() || searching}
                         className="btn btn-primary"
+                        style={{ minWidth: '120px' }}
                     >
-                        {saving ? <Loader style={{ width: '16px', height: '16px', animation: 'spin 1s linear infinite' }} /> : <Plus style={{ width: '16px', height: '16px' }} />}
-                        Save
+                        {searching ? (
+                            <>
+                                <Loader style={{ width: '16px', height: '16px', animation: 'spin 1s linear infinite' }} />
+                                Searching
+                            </>
+                        ) : (
+                            <>
+                                <Sparkles style={{ width: '16px', height: '16px' }} />
+                                Search
+                            </>
+                        )}
                     </button>
                 </div>
             </div>
 
-            <div className="grid-main">
-                <div>
-                    {research.length === 0 ? (
-                        <div className="panel" style={{ textAlign: 'center', padding: '4rem 2rem' }}>
-                            <Folder style={{ width: '48px', height: '48px', color: 'var(--gold)', margin: '0 auto 1.5rem' }} />
-                            <h2 className="text-h2" style={{ marginBottom: '0.75rem' }}>No research saved yet</h2>
-                            <p className="text-body" style={{ maxWidth: '400px', margin: '0 auto' }}>
-                                Start saving your research queries above. You can link them to specific stories.
-                            </p>
-                        </div>
+            {currentResults && (
+                <div className="panel" style={{ padding: '1.5rem', marginBottom: '2rem', background: 'var(--bg-secondary)' }}>
+                    {currentResults.error ? (
+                        <p className="text-body" style={{ color: 'var(--error)' }}>{currentResults.error}</p>
                     ) : (
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                            {research.map((item) => (
-                                <div key={item.id} className="card">
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                                        <div style={{ flex: 1 }}>
-                                            <h3 style={{ fontSize: '1rem', fontWeight: 500, color: 'var(--text-primary)', marginBottom: '0.5rem' }}>
-                                                {item.query}
-                                            </h3>
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                                                <span className="text-small">{formatDate(item.createdAt)}</span>
-                                                {item.story && (
-                                                    <span className="badge badge-gold">{item.story.title}</span>
-                                                )}
-                                                {item.results && (
-                                                    <span className="badge" style={{ background: 'var(--gold-dim)', color: 'var(--gold)' }}>
-                                                        <Sparkles style={{ width: '12px', height: '12px' }} /> AI
-                                                    </span>
-                                                )}
-                                            </div>
-                                        </div>
-                                        <button
-                                            onClick={() => handleDeleteResearch(item.id)}
-                                            className="btn-ghost"
-                                            style={{ padding: '0.5rem', color: 'var(--text-dim)' }}
-                                        >
-                                            <Trash2 style={{ width: '16px', height: '16px' }} />
-                                        </button>
+                        <>
+                            <h3 className="text-label" style={{ marginBottom: '1rem', color: 'var(--gold)' }}>
+                                Search Results
+                            </h3>
+                            <div className="text-body" style={{ whiteSpace: 'pre-wrap', lineHeight: 1.7 }}>
+                                {currentResults.summary}
+                            </div>
+                            {currentResults.sources?.length > 0 && (
+                                <div style={{ marginTop: '1.5rem', paddingTop: '1rem', borderTop: '1px solid var(--border)' }}>
+                                    <p className="text-label" style={{ marginBottom: '0.75rem' }}>Sources</p>
+                                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
+                                        {currentResults.sources.map((src, i) => (
+                                            <a key={i} href={src.url} target="_blank" rel="noopener noreferrer"
+                                                className="badge" style={{
+                                                    background: 'var(--bg-tertiary)',
+                                                    color: 'var(--text-primary)',
+                                                    display: 'inline-flex',
+                                                    alignItems: 'center',
+                                                    gap: '0.25rem',
+                                                    textDecoration: 'none'
+                                                }}>
+                                                {src.title}
+                                                <ExternalLink style={{ width: '12px', height: '12px' }} />
+                                            </a>
+                                        ))}
                                     </div>
                                 </div>
-                            ))}
-                        </div>
+                            )}
+                        </>
                     )}
                 </div>
+            )}
 
-                <div className="grid-sidebar">
-                    <div className="panel panel-gold">
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
-                            <Sparkles style={{ width: '16px', height: '16px', color: 'var(--gold)' }} />
-                            <p className="text-label text-gold">AURIC AI ASSISTANT</p>
-                        </div>
-
-                        <p className="text-body" style={{ marginBottom: '1rem' }}>
-                            Search the web with AI-powered research. Results are automatically saved to your story.
+            <div>
+                <h2 className="text-h2" style={{ marginBottom: '1rem' }}>Saved Research</h2>
+                {research.length === 0 ? (
+                    <div className="panel" style={{ textAlign: 'center', padding: '4rem 2rem' }}>
+                        <Folder style={{ width: '48px', height: '48px', color: 'var(--gold)', margin: '0 auto 1.5rem' }} />
+                        <h3 className="text-h2" style={{ marginBottom: '0.75rem' }}>No research saved yet</h3>
+                        <p className="text-body" style={{ maxWidth: '400px', margin: '0 auto' }}>
+                            Use the AI search above to start researching. Results will be saved automatically.
                         </p>
-
-                        <div style={{ position: 'relative' }}>
-                            <input
-                                type="text"
-                                placeholder="Ask Auric AI..."
-                                className="input"
-                                value={aiQuery}
-                                onChange={(e) => setAiQuery(e.target.value)}
-                                onKeyDown={(e) => e.key === 'Enter' && handleAiSearch()}
-                                disabled={aiSearching}
-                                style={{ paddingRight: '3rem' }}
-                            />
-                            <button
-                                onClick={handleAiSearch}
-                                disabled={aiSearching || !aiQuery.trim()}
-                                style={{
-                                    position: 'absolute',
-                                    right: '0.75rem',
-                                    top: '50%',
-                                    transform: 'translateY(-50%)',
-                                    background: 'none',
-                                    border: 'none',
-                                    color: aiSearching ? 'var(--text-dim)' : 'var(--gold)',
-                                    cursor: aiSearching ? 'wait' : 'pointer'
-                                }}
-                            >
-                                {aiSearching
-                                    ? <Loader style={{ width: '16px', height: '16px', animation: 'spin 1s linear infinite' }} />
-                                    : <Send style={{ width: '16px', height: '16px' }} />
-                                }
-                            </button>
-                        </div>
-
-                        {aiResults && (
-                            <div style={{ marginTop: '1rem', padding: '1rem', background: 'var(--bg-secondary)', borderRadius: '8px', maxHeight: '300px', overflow: 'auto' }}>
-                                {aiResults.error ? (
-                                    <p className="text-small" style={{ color: 'var(--error)' }}>{aiResults.error}</p>
-                                ) : (
-                                    <>
-                                        <p className="text-body" style={{ whiteSpace: 'pre-wrap', fontSize: '0.875rem' }}>
-                                            {aiResults.summary}
-                                        </p>
-                                        {aiResults.sources?.length > 0 && (
-                                            <div style={{ marginTop: '0.75rem', borderTop: '1px solid var(--border)', paddingTop: '0.75rem' }}>
-                                                <p className="text-label" style={{ marginBottom: '0.5rem' }}>Sources</p>
-                                                {aiResults.sources.map((src, i) => (
-                                                    <a key={i} href={src.url} target="_blank" rel="noopener noreferrer"
-                                                        className="text-small" style={{ display: 'block', color: 'var(--gold)', marginBottom: '0.25rem' }}>
-                                                        {src.title}
-                                                    </a>
-                                                ))}
-                                            </div>
-                                        )}
-                                    </>
-                                )}
-                            </div>
-                        )}
                     </div>
-                </div>
+                ) : (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                        {research.map((item) => (
+                            <div key={item.id} className="card">
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                                    <div style={{ flex: 1 }}>
+                                        <h3 style={{ fontSize: '1rem', fontWeight: 500, color: 'var(--text-primary)', marginBottom: '0.5rem' }}>
+                                            {item.query}
+                                        </h3>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
+                                            <span className="text-small">{formatDate(item.createdAt)}</span>
+                                            {item.story && (
+                                                <span className="badge badge-gold">{item.story.title}</span>
+                                            )}
+                                            {item.results && (
+                                                <span className="badge" style={{ background: 'var(--gold-dim)', color: 'var(--gold)' }}>
+                                                    <Sparkles style={{ width: '12px', height: '12px' }} /> AI
+                                                </span>
+                                            )}
+                                        </div>
+                                    </div>
+                                    <button
+                                        onClick={() => handleDeleteResearch(item.id)}
+                                        className="btn-ghost"
+                                        style={{ padding: '0.5rem', color: 'var(--text-dim)' }}
+                                    >
+                                        <Trash2 style={{ width: '16px', height: '16px' }} />
+                                    </button>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                )}
             </div>
         </div>
     );
