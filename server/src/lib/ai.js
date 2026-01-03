@@ -13,12 +13,12 @@ function getModel(usePerplexity = false) {
     if (!ai) {
         throw new Error(`${usePerplexity ? 'PERPLEXITY' : 'GEMINI'}_API_KEY not configured`);
     }
-    return ai.getGenerativeModel({ model: 'gemini-2.0-flash' });
+    return ai.getGenerativeModel({ model: 'gemini-2.5-flash' });
 }
 
 function getSearchModel() {
     if (!genAI) throw new Error('GEMINI_API_KEY not configured');
-    return genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
+    return genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
 }
 
 export async function searchResearch(query) {
