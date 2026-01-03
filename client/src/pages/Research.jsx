@@ -18,6 +18,9 @@ export function Research() {
     const [query, setQuery] = useState('');
     const [selectedStory, setSelectedStory] = useState('');
     const [saving, setSaving] = useState(false);
+    const [aiQuery, setAiQuery] = useState('');
+    const [aiSearching, setAiSearching] = useState(false);
+    const [aiResults, setAiResults] = useState(null);
 
     useEffect(() => {
         loadData();
@@ -49,7 +52,7 @@ export function Research() {
             const newResearch = await api.post('/research', {
                 query: query.trim(),
                 storyId: selectedStory || null,
-                results: null // Would be populated by AI search in future
+                results: null
             });
             setResearch([newResearch, ...research]);
             setQuery('');
@@ -57,6 +60,26 @@ export function Research() {
             console.error('Failed to save research:', err);
         } finally {
             setSaving(false);
+        }
+    };
+
+    const handleAiSearch = async () => {
+        if (!aiQuery.trim()) return;
+
+        setAiSearching(true);
+        setAiResults(null);
+        try {
+            const results = await api.post('/research/search', {
+                query: aiQuery.trim(),
+                storyId: selectedStory || null
+            });
+            setAiResults(results);
+            await loadData();
+        } catch (err) {
+            console.error('AI search failed:', err);
+            setAiResults({ error: err.message || 'AI search failed' });
+        } finally {
+            setAiSearching(false);
         }
     };
 
@@ -87,13 +110,11 @@ export function Research() {
 
     return (
         <div className="page-container">
-            {/* Header */}
             <header className="page-header">
                 <h1 className="text-h1" style={{ marginBottom: '0.5rem' }}>Research</h1>
                 <p className="text-body">Save research queries and notes for your stories.</p>
             </header>
 
-            {/* Search/Save Bar */}
             <div style={{ marginBottom: '2rem' }}>
                 <div style={{ display: 'flex', gap: '1rem', alignItems: 'flex-end' }}>
                     <div style={{ flex: 1 }}>
@@ -146,7 +167,6 @@ export function Research() {
             </div>
 
             <div className="grid-main">
-                {/* Research List */}
                 <div>
                     {research.length === 0 ? (
                         <div className="panel" style={{ textAlign: 'center', padding: '4rem 2rem' }}>
@@ -170,6 +190,11 @@ export function Research() {
                                                 {item.story && (
                                                     <span className="badge badge-gold">{item.story.title}</span>
                                                 )}
+                                                {item.results && (
+                                                    <span className="badge" style={{ background: 'var(--gold-dim)', color: 'var(--gold)' }}>
+                                                        <Sparkles style={{ width: '12px', height: '12px' }} /> AI
+                                                    </span>
+                                                )}
                                             </div>
                                         </div>
                                         <button
@@ -186,9 +211,7 @@ export function Research() {
                     )}
                 </div>
 
-                {/* Sidebar */}
                 <div className="grid-sidebar">
-                    {/* AI Chat - Placeholder for future */}
                     <div className="panel panel-gold">
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
                             <Sparkles style={{ width: '16px', height: '16px', color: 'var(--gold)' }} />
@@ -196,31 +219,65 @@ export function Research() {
                         </div>
 
                         <p className="text-body" style={{ marginBottom: '1rem' }}>
-                            AI-powered research assistance coming soon. Add your API key in settings to enable intelligent search and synthesis.
+                            Search the web with AI-powered research. Results are automatically saved to your story.
                         </p>
 
-                        <div style={{ opacity: 0.5 }}>
-                            <div style={{ position: 'relative' }}>
-                                <input
-                                    type="text"
-                                    placeholder="Ask Auric AI..."
-                                    className="input"
-                                    disabled
-                                    style={{ paddingRight: '3rem' }}
-                                />
-                                <button disabled style={{
+                        <div style={{ position: 'relative' }}>
+                            <input
+                                type="text"
+                                placeholder="Ask Auric AI..."
+                                className="input"
+                                value={aiQuery}
+                                onChange={(e) => setAiQuery(e.target.value)}
+                                onKeyDown={(e) => e.key === 'Enter' && handleAiSearch()}
+                                disabled={aiSearching}
+                                style={{ paddingRight: '3rem' }}
+                            />
+                            <button
+                                onClick={handleAiSearch}
+                                disabled={aiSearching || !aiQuery.trim()}
+                                style={{
                                     position: 'absolute',
                                     right: '0.75rem',
                                     top: '50%',
                                     transform: 'translateY(-50%)',
                                     background: 'none',
                                     border: 'none',
-                                    color: 'var(--gold)'
-                                }}>
-                                    <Send style={{ width: '16px', height: '16px' }} />
-                                </button>
-                            </div>
+                                    color: aiSearching ? 'var(--text-dim)' : 'var(--gold)',
+                                    cursor: aiSearching ? 'wait' : 'pointer'
+                                }}
+                            >
+                                {aiSearching
+                                    ? <Loader style={{ width: '16px', height: '16px', animation: 'spin 1s linear infinite' }} />
+                                    : <Send style={{ width: '16px', height: '16px' }} />
+                                }
+                            </button>
                         </div>
+
+                        {aiResults && (
+                            <div style={{ marginTop: '1rem', padding: '1rem', background: 'var(--bg-secondary)', borderRadius: '8px', maxHeight: '300px', overflow: 'auto' }}>
+                                {aiResults.error ? (
+                                    <p className="text-small" style={{ color: 'var(--error)' }}>{aiResults.error}</p>
+                                ) : (
+                                    <>
+                                        <p className="text-body" style={{ whiteSpace: 'pre-wrap', fontSize: '0.875rem' }}>
+                                            {aiResults.summary}
+                                        </p>
+                                        {aiResults.sources?.length > 0 && (
+                                            <div style={{ marginTop: '0.75rem', borderTop: '1px solid var(--border)', paddingTop: '0.75rem' }}>
+                                                <p className="text-label" style={{ marginBottom: '0.5rem' }}>Sources</p>
+                                                {aiResults.sources.map((src, i) => (
+                                                    <a key={i} href={src.url} target="_blank" rel="noopener noreferrer"
+                                                        className="text-small" style={{ display: 'block', color: 'var(--gold)', marginBottom: '0.25rem' }}>
+                                                        {src.title}
+                                                    </a>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </>
+                                )}
+                            </div>
+                        )}
                     </div>
                 </div>
             </div>

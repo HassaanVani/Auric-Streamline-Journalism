@@ -1,15 +1,14 @@
 import { Router } from 'express';
 import prisma from '../lib/db.js';
 import { authenticateToken } from '../middleware/auth.js';
+import { searchResearch, isAIConfigured } from '../lib/ai.js';
 
 const router = Router();
 
 router.use(authenticateToken);
 
-// Get user's saved research (including unlinked)
 router.get('/', async (req, res) => {
     try {
-        // Get all stories owned by user
         const userStories = await prisma.story.findMany({
             where: { userId: req.user.id },
             select: { id: true }
@@ -20,7 +19,7 @@ router.get('/', async (req, res) => {
             where: {
                 OR: [
                     { storyId: { in: storyIds } },
-                    { storyId: null } // Include unlinked research
+                    { storyId: null }
                 ]
             },
             include: {
@@ -35,7 +34,6 @@ router.get('/', async (req, res) => {
     }
 });
 
-// Save research item
 router.post('/', async (req, res) => {
     try {
         const { query, results, storyId } = req.body;
@@ -44,7 +42,6 @@ router.post('/', async (req, res) => {
             return res.status(400).json({ error: 'Query is required' });
         }
 
-        // Verify story ownership if storyId provided
         if (storyId) {
             const story = await prisma.story.findFirst({
                 where: { id: storyId, userId: req.user.id }
@@ -69,7 +66,42 @@ router.post('/', async (req, res) => {
     }
 });
 
-// Delete research item
+router.post('/search', async (req, res) => {
+    try {
+        const { query, storyId } = req.body;
+
+        if (!query) {
+            return res.status(400).json({ error: 'Query is required' });
+        }
+
+        if (!isAIConfigured()) {
+            return res.status(503).json({ error: 'AI not configured. Add GEMINI_API_KEY to enable search.' });
+        }
+
+        const searchResults = await searchResearch(query);
+
+        if (storyId) {
+            const story = await prisma.story.findFirst({
+                where: { id: storyId, userId: req.user.id }
+            });
+            if (story) {
+                await prisma.research.create({
+                    data: {
+                        query,
+                        results: JSON.stringify(searchResults),
+                        storyId
+                    }
+                });
+            }
+        }
+
+        res.json(searchResults);
+    } catch (error) {
+        console.error('AI search error:', error);
+        res.status(500).json({ error: 'AI search failed', details: error.message });
+    }
+});
+
 router.delete('/:id', async (req, res) => {
     try {
         const research = await prisma.research.findFirst({

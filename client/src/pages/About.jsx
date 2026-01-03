@@ -8,7 +8,9 @@ import {
     CheckCircle,
     Sparkles,
     ArrowRight,
-    ExternalLink
+    Shield,
+    Link2,
+    AlertTriangle
 } from 'lucide-react';
 
 export function About() {
@@ -16,42 +18,59 @@ export function About() {
         {
             icon: Search,
             title: 'Research',
-            description: 'Gather and organize information for your investigations. Save research queries and build your knowledge base.'
+            description: 'Gather and organize information with AI-powered search. Save findings and build your knowledge base.'
         },
         {
             icon: Users,
             title: 'Sources & Contacts',
-            description: 'Manage your network of experts, officials, and key contacts. Link contacts to multiple stories and track your relationships.'
+            description: 'Manage your network of experts and key contacts. Track relationships across multiple stories.'
         },
         {
             icon: Video,
             title: 'Meetings & Transcripts',
-            description: 'Schedule interviews, log meeting notes, and store transcripts. Keep all your interview data in one place.'
+            description: 'Schedule interviews, log meeting notes, and store transcripts in one place.'
         },
         {
             icon: PenTool,
             title: 'Article Drafts',
-            description: 'Write and edit your articles with a distraction-free editor. Track multiple drafts per story.'
+            description: 'Write with a distraction-free editor. Track multiple drafts per story.'
         },
         {
             icon: CheckCircle,
             title: 'Editorial Review',
-            description: 'Move articles through your workflow: draft → review → approved → published.'
+            description: 'AI-powered style suggestions and fact-checking. Move articles through your workflow.'
         }
     ];
 
     const workflow = [
-        { step: 1, title: 'Create a Story', description: 'Start by creating a story for your investigation. This organizes all your work.' },
-        { step: 2, title: 'Research', description: 'Gather information. Save key findings and link them to your story.' },
+        { step: 1, title: 'Create a Story', description: 'Start your investigation. This organizes all your work.' },
+        { step: 2, title: 'Research', description: 'Gather information with AI search. Findings link to your story.' },
         { step: 3, title: 'Find Sources', description: 'Add contacts to your source list. Link them to relevant stories.' },
-        { step: 4, title: 'Interview', description: 'Schedule meetings with sources. Store transcripts and notes.' },
-        { step: 5, title: 'Write', description: 'Create article drafts using your research and interviews.' },
-        { step: 6, title: 'Review & Publish', description: 'Move through editorial review until published.' }
+        { step: 4, title: 'Interview', description: 'AI generates questions. Store transcripts and notes.' },
+        { step: 5, title: 'Write', description: 'Create drafts with your research visible in the sidebar.' },
+        { step: 6, title: 'Review & Publish', description: 'AI reviews for clarity. Fact-check claims before publishing.' }
+    ];
+
+    const values = [
+        {
+            icon: Shield,
+            title: 'Structural Integrity',
+            description: 'Organized information is the best defense against misinformation.'
+        },
+        {
+            icon: Link2,
+            title: 'Chain of Custody',
+            description: 'Trace every sentence back to a specific interview, research query, or verified contact.'
+        },
+        {
+            icon: AlertTriangle,
+            title: 'Accountability Built In',
+            description: 'Link sources to stories and notes to drafts. Build accountability into your writing.'
+        }
     ];
 
     return (
         <div className="page-container">
-            {/* Hero */}
             <header style={{ textAlign: 'center', marginBottom: '4rem' }}>
                 <div style={{
                     display: 'flex',
@@ -80,7 +99,50 @@ export function About() {
                 </p>
             </header>
 
-            {/* Features */}
+            <section style={{ marginBottom: '4rem' }}>
+                <div className="panel" style={{ padding: '2rem', background: 'var(--bg-secondary)', borderLeft: '4px solid var(--gold)' }}>
+                    <h2 className="text-h2" style={{ marginBottom: '1rem' }}>The Problem</h2>
+                    <p className="text-body" style={{ marginBottom: '1rem' }}>
+                        We are living through a crisis of information. In an era where verifying facts is more critical than ever,
+                        the tools available to journalists are surprisingly fragile.
+                    </p>
+                    <p className="text-body">
+                        A typical investigation lives across scattered documents, disparate email threads, and mental notes.
+                        This fragmentation makes it harder to verify sources, easier to lose track of evidence,
+                        and significantly more difficult for new journalists to produce rigorous work.
+                    </p>
+                </div>
+            </section>
+
+            <section style={{ marginBottom: '4rem' }}>
+                <h2 className="text-h2" style={{ marginBottom: '2rem', textAlign: 'center' }}>Our Approach</h2>
+                <div style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+                    gap: '1.5rem'
+                }}>
+                    {values.map((value) => (
+                        <div key={value.title} className="card" style={{ padding: '1.5rem', textAlign: 'center' }}>
+                            <value.icon style={{
+                                width: '32px',
+                                height: '32px',
+                                color: 'var(--gold)',
+                                margin: '0 auto 1rem'
+                            }} />
+                            <h3 style={{
+                                fontSize: '1.125rem',
+                                fontWeight: 600,
+                                color: 'var(--text-primary)',
+                                marginBottom: '0.5rem'
+                            }}>
+                                {value.title}
+                            </h3>
+                            <p className="text-body">{value.description}</p>
+                        </div>
+                    ))}
+                </div>
+            </section>
+
             <section style={{ marginBottom: '4rem' }}>
                 <h2 className="text-h2" style={{ marginBottom: '2rem', textAlign: 'center' }}>Features</h2>
                 <div style={{
@@ -110,7 +172,6 @@ export function About() {
                 </div>
             </section>
 
-            {/* Workflow */}
             <section style={{ marginBottom: '4rem' }}>
                 <h2 className="text-h2" style={{ marginBottom: '2rem', textAlign: 'center' }}>How It Works</h2>
                 <div className="panel" style={{ padding: '2rem' }}>
@@ -152,7 +213,7 @@ export function About() {
                                         width: '20px',
                                         height: '20px',
                                         color: 'var(--gold)',
-                                        display: 'none' // Hide on small screens
+                                        display: 'none'
                                     }} className="workflow-arrow" />
                                 )}
                             </div>
@@ -161,24 +222,22 @@ export function About() {
                 </div>
             </section>
 
-            {/* AI Features */}
             <section style={{ marginBottom: '4rem' }}>
                 <div className="panel panel-gold" style={{ padding: '2rem', textAlign: 'center' }}>
                     <Sparkles style={{ width: '32px', height: '32px', color: 'var(--gold)', margin: '0 auto 1rem' }} />
-                    <h2 className="text-h2" style={{ marginBottom: '0.75rem' }}>AI Features</h2>
+                    <h2 className="text-h2" style={{ marginBottom: '0.75rem' }}>Powered by AI</h2>
                     <p className="text-body" style={{ maxWidth: '500px', margin: '0 auto 1.5rem' }}>
-                        Auric supports AI-powered features like question generation, email drafting, and article review.
-                        Configure your OpenAI API key in Settings to enable these features.
+                        Auric uses AI to power research search, interview question generation, email drafting,
+                        and editorial review with fact-checking—all designed to support journalistic integrity.
                     </p>
-                    <Link to="/settings">
+                    <Link to="/research">
                         <button className="btn btn-primary">
-                            Go to Settings
+                            Try AI Research
                         </button>
                     </Link>
                 </div>
             </section>
 
-            {/* Get Started */}
             <section style={{ textAlign: 'center' }}>
                 <h2 className="text-h2" style={{ marginBottom: '1rem' }}>Ready to get started?</h2>
                 <p className="text-body" style={{ marginBottom: '1.5rem' }}>
