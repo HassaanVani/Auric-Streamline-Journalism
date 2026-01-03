@@ -14,6 +14,10 @@ import settingsRoutes from './routes/settings.js';
 import articlesRoutes from './routes/articles.js';
 import meetingsRoutes from './routes/meetings.js';
 import transcriptsRoutes from './routes/transcripts.js';
+import questionsRoutes from './routes/questions.js';
+import emailsRoutes from './routes/emails.js';
+import reviewRoutes from './routes/review.js';
+import calendarRoutes from './routes/calendar.js';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -44,6 +48,10 @@ app.use('/api/settings', settingsRoutes);
 app.use('/api/articles', articlesRoutes);
 app.use('/api/meetings', meetingsRoutes);
 app.use('/api/transcripts', transcriptsRoutes);
+app.use('/api/questions', questionsRoutes);
+app.use('/api/emails', emailsRoutes);
+app.use('/api/review', reviewRoutes);
+app.use('/api/calendar', calendarRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {

@@ -19,9 +19,12 @@ export function EmailOutreach() {
 
     const [selectedContact, setSelectedContact] = useState(null);
     const [selectedStory, setSelectedStory] = useState('');
+    const [purpose, setPurpose] = useState('Interview request');
+    const [tone, setTone] = useState('professional');
     const [subject, setSubject] = useState('');
     const [body, setBody] = useState('');
     const [copied, setCopied] = useState(false);
+    const [generating, setGenerating] = useState(false);
 
     useEffect(() => {
         loadData();
@@ -45,6 +48,29 @@ export function EmailOutreach() {
     const handleSelectContact = (contactId) => {
         const contact = contacts.find(c => c.id === contactId);
         setSelectedContact(contact);
+    };
+
+    const handleGenerateEmail = async () => {
+        if (!selectedContact) return;
+
+        setGenerating(true);
+        try {
+            const result = await api.post('/emails/generate', {
+                recipient: {
+                    name: selectedContact.name,
+                    role: selectedContact.role,
+                    affiliation: selectedContact.org
+                },
+                purpose,
+                tone
+            });
+            setSubject(result.subject || '');
+            setBody(result.body || '');
+        } catch (err) {
+            console.error('Failed to generate:', err);
+        } finally {
+            setGenerating(false);
+        }
     };
 
     const handleCopy = () => {
@@ -83,18 +109,9 @@ export function EmailOutreach() {
                 Back to Sources
             </Link>
 
-            <header className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem' }}>
-                <div>
-                    <h1 className="text-h1" style={{ marginBottom: '0.5rem' }}>Email Outreach</h1>
-                    <p className="text-body">Draft outreach emails to your sources.</p>
-                </div>
-                {/* AI button in header */}
-                <Link to="/settings" style={{ textDecoration: 'none' }}>
-                    <button className="btn btn-secondary" title="Enable AI email drafting in Settings">
-                        <Sparkles style={{ width: '16px', height: '16px', color: 'var(--gold)' }} />
-                        AI Draft
-                    </button>
-                </Link>
+            <header className="page-header">
+                <h1 className="text-h1" style={{ marginBottom: '0.5rem' }}>Email Outreach</h1>
+                <p className="text-body">Draft outreach emails to your sources with AI assistance.</p>
             </header>
 
             {contacts.length === 0 ? (
@@ -112,7 +129,6 @@ export function EmailOutreach() {
                 </div>
             ) : (
                 <div style={{ maxWidth: '700px' }}>
-                    {/* Recipient + Story selectors in one row */}
                     <div style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem', flexWrap: 'wrap' }}>
                         <div style={{ flex: 2, minWidth: '200px' }}>
                             <label className="text-label" style={{ display: 'block', marginBottom: '0.5rem' }}>To</label>
@@ -130,46 +146,70 @@ export function EmailOutreach() {
                             </select>
                         </div>
                         <div style={{ flex: 1, minWidth: '160px' }}>
-                            <label className="text-label" style={{ display: 'block', marginBottom: '0.5rem' }}>Story</label>
+                            <label className="text-label" style={{ display: 'block', marginBottom: '0.5rem' }}>Purpose</label>
                             <select
-                                value={selectedStory}
-                                onChange={(e) => setSelectedStory(e.target.value)}
+                                value={purpose}
+                                onChange={(e) => setPurpose(e.target.value)}
                                 className="input"
                             >
-                                <option value="">Select a story</option>
-                                {stories.map(s => (
-                                    <option key={s.id} value={s.id}>{s.title}</option>
-                                ))}
+                                <option value="Interview request">Interview Request</option>
+                                <option value="Follow-up">Follow-up</option>
+                                <option value="Document request">Document Request</option>
+                                <option value="Clarification">Clarification</option>
+                            </select>
+                        </div>
+                        <div style={{ flex: 1, minWidth: '120px' }}>
+                            <label className="text-label" style={{ display: 'block', marginBottom: '0.5rem' }}>Tone</label>
+                            <select
+                                value={tone}
+                                onChange={(e) => setTone(e.target.value)}
+                                className="input"
+                            >
+                                <option value="professional">Professional</option>
+                                <option value="friendly">Friendly</option>
+                                <option value="formal">Formal</option>
                             </select>
                         </div>
                     </div>
 
-                    {/* Selected contact info inline */}
                     {selectedContact && (
                         <div style={{
                             display: 'flex',
                             alignItems: 'center',
-                            gap: '0.75rem',
+                            justifyContent: 'space-between',
                             padding: '0.75rem 1rem',
                             background: 'var(--bg-secondary)',
                             borderRadius: '8px',
                             marginBottom: '1.5rem'
                         }}>
-                            <div className="avatar" style={{ width: '32px', height: '32px', fontSize: '0.75rem' }}>
-                                {selectedContact.name.split(' ').map(n => n[0]).join('').slice(0, 2)}
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                                <div className="avatar" style={{ width: '32px', height: '32px', fontSize: '0.75rem' }}>
+                                    {selectedContact.name.split(' ').map(n => n[0]).join('').slice(0, 2)}
+                                </div>
+                                <div>
+                                    <span style={{ fontWeight: 500, color: 'var(--text-primary)' }}>{selectedContact.name}</span>
+                                    {selectedContact.role && (
+                                        <span className="text-small" style={{ marginLeft: '0.5rem' }}>
+                                            • {selectedContact.role} {selectedContact.org ? `at ${selectedContact.org}` : ''}
+                                        </span>
+                                    )}
+                                </div>
                             </div>
-                            <div>
-                                <span style={{ fontWeight: 500, color: 'var(--text-primary)' }}>{selectedContact.name}</span>
-                                {selectedContact.role && (
-                                    <span className="text-small" style={{ marginLeft: '0.5rem' }}>
-                                        • {selectedContact.role} {selectedContact.org ? `at ${selectedContact.org}` : ''}
-                                    </span>
+                            <button
+                                onClick={handleGenerateEmail}
+                                disabled={generating}
+                                className="btn btn-primary"
+                            >
+                                {generating ? (
+                                    <Loader style={{ width: '16px', height: '16px', animation: 'spin 1s linear infinite' }} />
+                                ) : (
+                                    <Sparkles style={{ width: '16px', height: '16px' }} />
                                 )}
-                            </div>
+                                {generating ? 'Generating...' : 'AI Draft'}
+                            </button>
                         </div>
                     )}
 
-                    {/* Subject */}
                     <div style={{ marginBottom: '1rem' }}>
                         <label className="text-label" style={{ display: 'block', marginBottom: '0.5rem' }}>Subject</label>
                         <input
@@ -181,7 +221,6 @@ export function EmailOutreach() {
                         />
                     </div>
 
-                    {/* Body */}
                     <div style={{ marginBottom: '1.5rem' }}>
                         <label className="text-label" style={{ display: 'block', marginBottom: '0.5rem' }}>Message</label>
                         <textarea
@@ -194,7 +233,6 @@ export function EmailOutreach() {
                         />
                     </div>
 
-                    {/* Actions */}
                     <div style={{ display: 'flex', gap: '0.75rem' }}>
                         <button onClick={handleCopy} className="btn btn-secondary">
                             {copied ? <Check style={{ width: '16px', height: '16px' }} /> : <Copy style={{ width: '16px', height: '16px' }} />}

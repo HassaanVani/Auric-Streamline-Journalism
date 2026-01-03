@@ -8,15 +8,16 @@ datasource db {
 }
 
 model User {
-  id        String   @id @default(uuid())
-  email     String   @unique
-  name      String
-  password  String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  stories   Story[]
-  contacts  Contact[]
-  settings  Settings?
+  id                    String   @id @default(uuid())
+  email                 String   @unique
+  name                  String
+  password              String
+  googleCalendarTokens  String?
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+  stories               Story[]
+  contacts              Contact[]
+  settings              Settings?
 }
 
 model Settings {

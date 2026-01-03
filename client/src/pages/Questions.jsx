@@ -9,8 +9,7 @@ import {
     Loader,
     MessageSquare,
     Copy,
-    Check,
-    Settings
+    Check
 } from 'lucide-react';
 
 export function Questions() {
@@ -24,6 +23,7 @@ export function Questions() {
     const [questions, setQuestions] = useState([]);
     const [newQuestion, setNewQuestion] = useState('');
     const [copiedIdx, setCopiedIdx] = useState(null);
+    const [generating, setGenerating] = useState(false);
 
     useEffect(() => {
         loadData();
@@ -46,8 +46,36 @@ export function Questions() {
 
     const handleAddQuestion = () => {
         if (!newQuestion.trim()) return;
-        setQuestions([...questions, { id: Date.now(), text: newQuestion.trim(), category: 'Custom' }]);
+        setQuestions([...questions, { id: Date.now(), question: newQuestion.trim(), category: 'Custom', priority: 'medium' }]);
         setNewQuestion('');
+    };
+
+    const handleGenerateQuestions = async () => {
+        setGenerating(true);
+        try {
+            const contact = contacts.find(c => c.id === selectedContact);
+            const story = stories.find(s => s.id === selectedStory);
+
+            const result = await api.post('/questions/generate', {
+                contact: contact ? { name: contact.name, role: contact.role, affiliation: contact.org } : null,
+                story: story ? { title: story.title } : null,
+                researchGaps: null
+            });
+
+            if (result.questions) {
+                setQuestions([...questions, ...result.questions.map(q => ({
+                    id: Date.now() + Math.random(),
+                    question: q.question,
+                    category: q.category || 'General',
+                    priority: q.priority || 'medium',
+                    followUp: q.followUp
+                }))]);
+            }
+        } catch (err) {
+            console.error('Failed to generate:', err);
+        } finally {
+            setGenerating(false);
+        }
     };
 
     const handleDeleteQuestion = (id) => {
@@ -61,7 +89,7 @@ export function Questions() {
     };
 
     const copyAll = () => {
-        const allQuestions = questions.map((q, i) => `${i + 1}. ${q.text}`).join('\n');
+        const allQuestions = questions.map((q, i) => `${i + 1}. ${q.question}${q.followUp ? `\n   Follow-up: ${q.followUp}` : ''}`).join('\n\n');
         navigator.clipboard.writeText(allQuestions);
     };
 
@@ -93,57 +121,69 @@ export function Questions() {
                 <p className="text-body">Create and organize questions for your interviews.</p>
             </header>
 
-            {/* Context selectors */}
-            <div style={{ display: 'flex', gap: '1rem', marginBottom: '2rem', flexWrap: 'wrap' }}>
-                <div style={{ minWidth: '180px' }}>
-                    <label className="text-label" style={{ display: 'block', marginBottom: '0.5rem' }}>Story</label>
-                    <select
-                        value={selectedStory}
-                        onChange={(e) => setSelectedStory(e.target.value)}
-                        className="input"
-                    >
-                        <option value="">Select a story</option>
-                        {stories.map(s => (
-                            <option key={s.id} value={s.id}>{s.title}</option>
-                        ))}
-                    </select>
+            <div className="panel panel-gold" style={{ padding: '1.5rem', marginBottom: '2rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
+                    <Sparkles style={{ width: '18px', height: '18px', color: 'var(--gold)' }} />
+                    <span className="text-label text-gold">AI QUESTION GENERATOR</span>
                 </div>
-                <div style={{ minWidth: '180px' }}>
-                    <label className="text-label" style={{ display: 'block', marginBottom: '0.5rem' }}>Contact</label>
-                    <select
-                        value={selectedContact}
-                        onChange={(e) => setSelectedContact(e.target.value)}
-                        className="input"
+
+                <div style={{ display: 'flex', gap: '1rem', alignItems: 'flex-end', flexWrap: 'wrap' }}>
+                    <div style={{ minWidth: '180px', flex: 1 }}>
+                        <label className="text-label" style={{ display: 'block', marginBottom: '0.5rem' }}>Story Context</label>
+                        <select
+                            value={selectedStory}
+                            onChange={(e) => setSelectedStory(e.target.value)}
+                            className="input"
+                        >
+                            <option value="">Any story</option>
+                            {stories.map(s => (
+                                <option key={s.id} value={s.id}>{s.title}</option>
+                            ))}
+                        </select>
+                    </div>
+                    <div style={{ minWidth: '180px', flex: 1 }}>
+                        <label className="text-label" style={{ display: 'block', marginBottom: '0.5rem' }}>For Contact</label>
+                        <select
+                            value={selectedContact}
+                            onChange={(e) => setSelectedContact(e.target.value)}
+                            className="input"
+                        >
+                            <option value="">Any contact</option>
+                            {contacts.map(c => (
+                                <option key={c.id} value={c.id}>{c.name}</option>
+                            ))}
+                        </select>
+                    </div>
+                    <button
+                        onClick={handleGenerateQuestions}
+                        disabled={generating}
+                        className="btn btn-primary"
+                        style={{ minWidth: '180px', height: '44px' }}
                     >
-                        <option value="">Select a contact</option>
-                        {contacts.map(c => (
-                            <option key={c.id} value={c.id}>{c.name}</option>
-                        ))}
-                    </select>
+                        {generating ? (
+                            <Loader style={{ width: '18px', height: '18px', animation: 'spin 1s linear infinite' }} />
+                        ) : (
+                            <Sparkles style={{ width: '18px', height: '18px' }} />
+                        )}
+                        {generating ? 'Generating...' : 'Generate Questions'}
+                    </button>
                 </div>
             </div>
 
-            {/* Add question input with AI button inline */}
-            <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '2rem', flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '2rem' }}>
                 <input
                     type="text"
                     value={newQuestion}
                     onChange={(e) => setNewQuestion(e.target.value)}
                     onKeyDown={(e) => e.key === 'Enter' && handleAddQuestion()}
-                    placeholder="Type a question..."
+                    placeholder="Or type a question manually..."
                     className="input"
-                    style={{ flex: 1, minWidth: '200px' }}
+                    style={{ flex: 1 }}
                 />
-                <button onClick={handleAddQuestion} disabled={!newQuestion.trim()} className="btn btn-primary">
+                <button onClick={handleAddQuestion} disabled={!newQuestion.trim()} className="btn btn-secondary">
                     <Plus style={{ width: '16px', height: '16px' }} />
                     Add
                 </button>
-                <Link to="/settings" style={{ textDecoration: 'none' }}>
-                    <button className="btn btn-secondary" title="Enable AI question generation in Settings">
-                        <Sparkles style={{ width: '16px', height: '16px', color: 'var(--gold)' }} />
-                        AI Generate
-                    </button>
-                </Link>
             </div>
 
             {questions.length === 0 ? (
@@ -151,9 +191,7 @@ export function Questions() {
                     <MessageSquare style={{ width: '40px', height: '40px', color: 'var(--gold)', margin: '0 auto 1rem' }} />
                     <h2 className="text-h3" style={{ marginBottom: '0.5rem' }}>No questions yet</h2>
                     <p className="text-body" style={{ maxWidth: '400px', margin: '0 auto' }}>
-                        Add questions manually above, or{' '}
-                        <Link to="/settings" style={{ color: 'var(--gold)' }}>configure your API key</Link>
-                        {' '}to enable AI-powered generation.
+                        Use AI to generate interview questions based on your story and contact, or add them manually.
                     </p>
                 </div>
             ) : (
@@ -170,11 +208,24 @@ export function Questions() {
                             <div key={q.id} className="card">
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '1rem' }}>
                                     <div style={{ flex: 1 }}>
-                                        <span className="text-mono text-gold" style={{ marginRight: '0.75rem' }}>{idx + 1}.</span>
-                                        <span style={{ color: 'var(--text-primary)' }}>{q.text}</span>
+                                        <div style={{ marginBottom: q.followUp ? '0.5rem' : 0 }}>
+                                            <span className="text-mono text-gold" style={{ marginRight: '0.75rem' }}>{idx + 1}.</span>
+                                            <span style={{ color: 'var(--text-primary)' }}>{q.question}</span>
+                                        </div>
+                                        {q.followUp && (
+                                            <p className="text-small" style={{ marginLeft: '1.75rem', color: 'var(--text-secondary)' }}>
+                                                Follow-up: {q.followUp}
+                                            </p>
+                                        )}
+                                        <div style={{ marginTop: '0.5rem', marginLeft: '1.75rem', display: 'flex', gap: '0.5rem' }}>
+                                            <span className="badge" style={{ fontSize: '0.6875rem' }}>{q.category}</span>
+                                            {q.priority === 'high' && (
+                                                <span className="badge badge-gold" style={{ fontSize: '0.6875rem' }}>High Priority</span>
+                                            )}
+                                        </div>
                                     </div>
                                     <div style={{ display: 'flex', gap: '0.5rem' }}>
-                                        <button onClick={() => handleCopy(idx, q.text)} className="btn-ghost" style={{ padding: '0.375rem' }}>
+                                        <button onClick={() => handleCopy(idx, q.question)} className="btn-ghost" style={{ padding: '0.375rem' }}>
                                             {copiedIdx === idx ? (
                                                 <Check style={{ width: '16px', height: '16px', color: 'var(--success)' }} />
                                             ) : (

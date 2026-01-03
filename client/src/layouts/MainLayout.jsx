@@ -1,6 +1,6 @@
 import { Outlet, useNavigate } from 'react-router-dom';
-import { Sidebar } from '../components/Sidebar';
-import { Search, Bell, Command, X, FileText, Users, BookOpen, Mail, MessageSquare, Calendar, PenTool, CheckCircle, Settings, Info, Sparkles } from 'lucide-react';
+import { Sidebar, MobileMenuButton } from '../components/Sidebar';
+import { Search, Bell, Command, X, FileText, Users, BookOpen, Mail, MessageSquare, Calendar, PenTool, CheckCircle, Settings, Info, Sparkles, Menu } from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -26,7 +26,16 @@ export function MainLayout() {
     const [searchFocused, setSearchFocused] = useState(false);
     const [showNotifications, setShowNotifications] = useState(false);
     const [selectedIndex, setSelectedIndex] = useState(0);
+    const [sidebarOpen, setSidebarOpen] = useState(false);
+    const [isMobile, setIsMobile] = useState(false);
     const inputRef = useRef(null);
+
+    useEffect(() => {
+        const checkMobile = () => setIsMobile(window.innerWidth < 768);
+        checkMobile();
+        window.addEventListener('resize', checkMobile);
+        return () => window.removeEventListener('resize', checkMobile);
+    }, []);
 
     const filteredCommands = searchValue.trim()
         ? commands.filter(cmd =>
@@ -70,109 +79,123 @@ export function MainLayout() {
 
     return (
         <div style={{ display: 'flex', height: '100vh', background: 'var(--bg-primary)' }}>
-            <Sidebar />
+            <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
 
             <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, overflow: 'hidden' }}>
                 <header style={{
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'space-between',
-                    padding: '1rem 2rem',
+                    padding: isMobile ? '0.75rem 1rem' : '1rem 2rem',
                     borderBottom: '1px solid var(--border-subtle)',
                     background: 'var(--bg-primary)',
-                    flexShrink: 0
+                    flexShrink: 0,
+                    gap: '0.75rem'
                 }}>
-                    <div style={{ flex: 1, maxWidth: '480px', position: 'relative' }}>
-                        <div style={{ position: 'relative' }}>
-                            <Search style={{
-                                position: 'absolute',
-                                left: '1rem',
-                                top: '50%',
-                                transform: 'translateY(-50%)',
-                                width: '18px',
-                                height: '18px',
-                                color: searchFocused ? 'var(--gold)' : 'var(--text-dim)'
-                            }} />
-                            <input
-                                ref={inputRef}
-                                type="text"
-                                placeholder="Quick navigation... ⌘K"
-                                value={searchValue}
-                                onChange={(e) => { setSearchValue(e.target.value); setSelectedIndex(0); }}
-                                onFocus={() => setSearchFocused(true)}
-                                onBlur={() => setTimeout(() => setSearchFocused(false), 150)}
-                                onKeyDown={handleSearchKeyDown}
-                                className="input-lg"
-                                style={{
-                                    width: '100%',
-                                    paddingLeft: '3rem',
-                                    paddingRight: '4rem'
-                                }}
-                            />
-                            <div style={{
-                                position: 'absolute',
-                                right: '0.75rem',
-                                top: '50%',
-                                transform: 'translateY(-50%)',
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '0.25rem',
-                                padding: '0.25rem 0.5rem',
-                                borderRadius: '6px',
-                                background: 'var(--bg-elevated)'
-                            }}>
-                                <Command style={{ width: '12px', height: '12px', color: 'var(--text-dim)' }} />
-                                <span style={{ fontSize: '0.625rem', color: 'var(--text-dim)', fontWeight: 600 }}>K</span>
-                            </div>
-                        </div>
+                    {isMobile && (
+                        <MobileMenuButton onClick={() => setSidebarOpen(true)} />
+                    )}
 
-                        {searchFocused && (
-                            <div style={{
-                                position: 'absolute',
-                                top: '100%',
-                                left: 0,
-                                right: 0,
-                                marginTop: '0.5rem',
-                                background: 'var(--bg-secondary)',
-                                border: '1px solid var(--border-subtle)',
-                                borderRadius: '12px',
-                                boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
-                                zIndex: 100,
-                                overflow: 'hidden'
-                            }}>
-                                <div style={{ padding: '0.5rem' }}>
-                                    {filteredCommands.map((cmd, i) => (
-                                        <button
-                                            key={cmd.path}
-                                            onClick={() => { navigate(cmd.path); setSearchValue(''); }}
-                                            style={{
-                                                width: '100%',
-                                                display: 'flex',
-                                                alignItems: 'center',
-                                                gap: '0.75rem',
-                                                padding: '0.75rem 1rem',
-                                                background: i === selectedIndex ? 'var(--gold-dim)' : 'transparent',
-                                                border: 'none',
-                                                borderRadius: '8px',
-                                                cursor: 'pointer',
-                                                textAlign: 'left'
-                                            }}
-                                        >
-                                            <cmd.icon style={{ width: '18px', height: '18px', color: i === selectedIndex ? 'var(--gold)' : 'var(--text-dim)' }} />
-                                            <span style={{ color: 'var(--text-primary)', fontWeight: 500 }}>{cmd.name}</span>
-                                        </button>
-                                    ))}
-                                    {filteredCommands.length === 0 && (
-                                        <div style={{ padding: '1rem', textAlign: 'center', color: 'var(--text-dim)' }}>
-                                            No results found
-                                        </div>
-                                    )}
+                    {!isMobile && (
+                        <div style={{ flex: 1, maxWidth: '480px', position: 'relative' }}>
+                            <div style={{ position: 'relative' }}>
+                                <Search style={{
+                                    position: 'absolute',
+                                    left: '1rem',
+                                    top: '50%',
+                                    transform: 'translateY(-50%)',
+                                    width: '18px',
+                                    height: '18px',
+                                    color: searchFocused ? 'var(--gold)' : 'var(--text-dim)'
+                                }} />
+                                <input
+                                    ref={inputRef}
+                                    type="text"
+                                    placeholder="Quick navigation... ⌘K"
+                                    value={searchValue}
+                                    onChange={(e) => { setSearchValue(e.target.value); setSelectedIndex(0); }}
+                                    onFocus={() => setSearchFocused(true)}
+                                    onBlur={() => setTimeout(() => setSearchFocused(false), 150)}
+                                    onKeyDown={handleSearchKeyDown}
+                                    className="input-lg"
+                                    style={{
+                                        width: '100%',
+                                        paddingLeft: '3rem',
+                                        paddingRight: '4rem'
+                                    }}
+                                />
+                                <div style={{
+                                    position: 'absolute',
+                                    right: '0.75rem',
+                                    top: '50%',
+                                    transform: 'translateY(-50%)',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '0.25rem',
+                                    padding: '0.25rem 0.5rem',
+                                    borderRadius: '6px',
+                                    background: 'var(--bg-elevated)'
+                                }}>
+                                    <Command style={{ width: '12px', height: '12px', color: 'var(--text-dim)' }} />
+                                    <span style={{ fontSize: '0.625rem', color: 'var(--text-dim)', fontWeight: 600 }}>K</span>
                                 </div>
                             </div>
-                        )}
-                    </div>
 
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginLeft: '2rem' }}>
+                            {searchFocused && (
+                                <div style={{
+                                    position: 'absolute',
+                                    top: '100%',
+                                    left: 0,
+                                    right: 0,
+                                    marginTop: '0.5rem',
+                                    background: 'var(--bg-secondary)',
+                                    border: '1px solid var(--border-subtle)',
+                                    borderRadius: '12px',
+                                    boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
+                                    zIndex: 100,
+                                    overflow: 'hidden'
+                                }}>
+                                    <div style={{ padding: '0.5rem' }}>
+                                        {filteredCommands.map((cmd, i) => (
+                                            <button
+                                                key={cmd.path}
+                                                onClick={() => { navigate(cmd.path); setSearchValue(''); }}
+                                                style={{
+                                                    width: '100%',
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    gap: '0.75rem',
+                                                    padding: '0.75rem 1rem',
+                                                    background: i === selectedIndex ? 'var(--gold-muted)' : 'transparent',
+                                                    border: 'none',
+                                                    borderRadius: '8px',
+                                                    cursor: 'pointer',
+                                                    textAlign: 'left'
+                                                }}
+                                            >
+                                                <cmd.icon style={{ width: '18px', height: '18px', color: i === selectedIndex ? 'var(--gold)' : 'var(--text-dim)' }} />
+                                                <span style={{ color: 'var(--text-primary)', fontWeight: 500 }}>{cmd.name}</span>
+                                            </button>
+                                        ))}
+                                        {filteredCommands.length === 0 && (
+                                            <div style={{ padding: '1rem', textAlign: 'center', color: 'var(--text-dim)' }}>
+                                                No results found
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    )}
+
+                    {isMobile && (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                            <img src="/Logo.png" alt="Auric" style={{ width: '28px', height: '28px' }} />
+                            <span style={{ fontFamily: "'Newsreader', serif", fontSize: '1.125rem', fontWeight: 600, color: 'var(--text-primary)' }}>Auric</span>
+                        </div>
+                    )}
+
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginLeft: isMobile ? 'auto' : '2rem' }}>
                         <div style={{ position: 'relative' }}>
                             <button
                                 onClick={() => setShowNotifications(!showNotifications)}
@@ -188,7 +211,7 @@ export function MainLayout() {
                                     top: '100%',
                                     right: 0,
                                     marginTop: '0.5rem',
-                                    width: '320px',
+                                    width: isMobile ? '280px' : '320px',
                                     background: 'var(--bg-secondary)',
                                     border: '1px solid var(--border-subtle)',
                                     borderRadius: '12px',
@@ -211,14 +234,14 @@ export function MainLayout() {
                                         <Bell style={{ width: '32px', height: '32px', color: 'var(--text-dim)', margin: '0 auto 1rem' }} />
                                         <p className="text-body">No notifications yet</p>
                                         <p className="text-small" style={{ marginTop: '0.5rem' }}>
-                                            You'll be notified about story updates and deadlines.
+                                            You'll be notified about story updates.
                                         </p>
                                     </div>
                                 </div>
                             )}
                         </div>
 
-                        <div className="avatar">{getInitials(user?.name)}</div>
+                        {!isMobile && <div className="avatar">{getInitials(user?.name)}</div>}
                     </div>
                 </header>
 

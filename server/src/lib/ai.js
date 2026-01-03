@@ -18,51 +18,30 @@ function getModel(usePerplexity = false) {
 
 function getSearchModel() {
     if (!genAI) throw new Error('GEMINI_API_KEY not configured');
-    return genAI.getGenerativeModel({
-        model: 'gemini-2.0-flash',
-        tools: [{ google_search: {} }]
-    });
+    return genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
 }
 
 export async function searchResearch(query) {
+    if (!genAI) throw new Error('GEMINI_API_KEY not configured');
+
+    const model = getSearchModel();
     const prompt = `You are a research assistant for investigative journalists. 
-Search for current, factual information about: "${query}"
+Research and provide current, factual information about: "${query}"
 
 Provide a comprehensive summary with:
 1. Key facts and findings
-2. Important dates and figures
+2. Important dates and figures  
 3. Relevant sources and organizations
 4. Any controversies or different perspectives
 
-Format your response as structured research notes.`;
+Format your response as structured research notes. Be thorough but concise.`;
 
-    try {
-        const model = getSearchModel();
-        const result = await model.generateContent(prompt);
-        const response = result.response;
-
-        const groundingMetadata = response.candidates?.[0]?.groundingMetadata;
-        const sources = groundingMetadata?.groundingChunks?.map(chunk => ({
-            title: chunk.web?.title || 'Source',
-            url: chunk.web?.uri || ''
-        })) || [];
-
-        return {
-            summary: response.text(),
-            sources,
-            searchedAt: new Date().toISOString()
-        };
-    } catch (error) {
-        console.error('Grounded search failed, falling back to standard:', error.message);
-        const model = getModel();
-        const result = await model.generateContent(prompt);
-        return {
-            summary: result.response.text(),
-            sources: [],
-            searchedAt: new Date().toISOString(),
-            fallback: true
-        };
-    }
+    const result = await model.generateContent(prompt);
+    return {
+        summary: result.response.text(),
+        sources: [],
+        searchedAt: new Date().toISOString()
+    };
 }
 
 export async function generateQuestions(contact, story, researchContext) {

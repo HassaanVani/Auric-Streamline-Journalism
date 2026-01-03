@@ -90,76 +90,75 @@ export function Research() {
         <div className="page-container">
             <header className="page-header">
                 <h1 className="text-h1" style={{ marginBottom: '0.5rem' }}>Research</h1>
-                <p className="text-body">AI-powered research for your investigations. Results are saved to your story.</p>
+                <p className="text-body">AI-powered research for your investigations.</p>
             </header>
 
-            <div className="panel panel-gold" style={{ padding: '1.5rem', marginBottom: '2rem' }}>
+            <div className="panel panel-gold" style={{ padding: '1.25rem', marginBottom: '2rem' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
                     <Sparkles style={{ width: '18px', height: '18px', color: 'var(--gold)' }} />
                     <span className="text-label text-gold">AURIC AI RESEARCH</span>
                 </div>
 
-                <div style={{ display: 'flex', gap: '1rem', alignItems: 'flex-end' }}>
-                    <div style={{ flex: 1 }}>
-                        <div style={{ position: 'relative' }}>
-                            <Search style={{
-                                position: 'absolute',
-                                left: '1rem',
-                                top: '50%',
-                                transform: 'translateY(-50%)',
-                                width: '18px',
-                                height: '18px',
-                                color: 'var(--text-dim)'
-                            }} />
-                            <input
-                                type="text"
-                                value={query}
-                                onChange={(e) => setQuery(e.target.value)}
-                                onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-                                placeholder="What would you like to research?"
-                                className="input"
-                                disabled={searching}
-                                style={{ paddingLeft: '3rem', fontSize: '1rem' }}
-                            />
-                        </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                    <div style={{ position: 'relative' }}>
+                        <Search style={{
+                            position: 'absolute',
+                            left: '1rem',
+                            top: '50%',
+                            transform: 'translateY(-50%)',
+                            width: '18px',
+                            height: '18px',
+                            color: 'var(--text-dim)'
+                        }} />
+                        <input
+                            type="text"
+                            value={query}
+                            onChange={(e) => setQuery(e.target.value)}
+                            onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+                            placeholder="What would you like to research?"
+                            className="input"
+                            disabled={searching}
+                            style={{ paddingLeft: '3rem', fontSize: '1rem', width: '100%' }}
+                        />
                     </div>
 
-                    <div style={{ minWidth: '180px' }}>
+                    <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
                         <select
                             value={selectedStory}
                             onChange={(e) => setSelectedStory(e.target.value)}
                             className="input"
+                            style={{ flex: '1 1 150px', minWidth: '150px' }}
                         >
                             <option value="">No story</option>
                             {stories.map(s => (
                                 <option key={s.id} value={s.id}>{s.title}</option>
                             ))}
                         </select>
-                    </div>
 
-                    <button
-                        onClick={handleSearch}
-                        disabled={!query.trim() || searching}
-                        className="btn btn-primary"
-                        style={{ minWidth: '120px' }}
-                    >
-                        {searching ? (
-                            <>
-                                <Loader style={{ width: '16px', height: '16px', animation: 'spin 1s linear infinite' }} />
-                                Searching
-                            </>
-                        ) : (
-                            <>
-                                <Sparkles style={{ width: '16px', height: '16px' }} />
-                                Search
-                            </>
-                        )}
-                    </button>
+                        <button
+                            onClick={handleSearch}
+                            disabled={!query.trim() || searching}
+                            className="btn btn-primary"
+                            style={{ flex: '0 0 auto', minHeight: '44px', padding: '0 1.5rem' }}
+                        >
+                            {searching ? (
+                                <>
+                                    <Loader style={{ width: '18px', height: '18px', animation: 'spin 1s linear infinite' }} />
+                                    <span className="hide-mobile">Searching...</span>
+                                </>
+                            ) : (
+                                <>
+                                    <Sparkles style={{ width: '18px', height: '18px' }} />
+                                    <span>Search</span>
+                                </>
+                            )}
+                        </button>
+                    </div>
                 </div>
             </div>
 
             {currentResults && (
-                <div className="panel" style={{ padding: '1.5rem', marginBottom: '2rem', background: 'var(--bg-secondary)' }}>
+                <div className="panel" style={{ padding: '1.25rem', marginBottom: '2rem', background: 'var(--bg-secondary)' }}>
                     {currentResults.error ? (
                         <p className="text-body" style={{ color: 'var(--error)' }}>{currentResults.error}</p>
                     ) : (
@@ -167,7 +166,7 @@ export function Research() {
                             <h3 className="text-label" style={{ marginBottom: '1rem', color: 'var(--gold)' }}>
                                 Search Results
                             </h3>
-                            <div className="text-body" style={{ whiteSpace: 'pre-wrap', lineHeight: 1.7 }}>
+                            <div className="text-body" style={{ whiteSpace: 'pre-wrap', lineHeight: 1.7, fontSize: '0.9375rem' }}>
                                 {currentResults.summary}
                             </div>
                             {currentResults.sources?.length > 0 && (
@@ -199,23 +198,23 @@ export function Research() {
             <div>
                 <h2 className="text-h2" style={{ marginBottom: '1rem' }}>Saved Research</h2>
                 {research.length === 0 ? (
-                    <div className="panel" style={{ textAlign: 'center', padding: '4rem 2rem' }}>
+                    <div className="panel" style={{ textAlign: 'center', padding: '3rem 1.5rem' }}>
                         <Folder style={{ width: '48px', height: '48px', color: 'var(--gold)', margin: '0 auto 1.5rem' }} />
                         <h3 className="text-h2" style={{ marginBottom: '0.75rem' }}>No research saved yet</h3>
                         <p className="text-body" style={{ maxWidth: '400px', margin: '0 auto' }}>
-                            Use the AI search above to start researching. Results will be saved automatically.
+                            Use the AI search above to start researching.
                         </p>
                     </div>
                 ) : (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                         {research.map((item) => (
                             <div key={item.id} className="card">
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                                    <div style={{ flex: 1 }}>
-                                        <h3 style={{ fontSize: '1rem', fontWeight: 500, color: 'var(--text-primary)', marginBottom: '0.5rem' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '0.75rem' }}>
+                                    <div style={{ flex: 1, minWidth: 0 }}>
+                                        <h3 style={{ fontSize: '1rem', fontWeight: 500, color: 'var(--text-primary)', marginBottom: '0.5rem', wordBreak: 'break-word' }}>
                                             {item.query}
                                         </h3>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
                                             <span className="text-small">{formatDate(item.createdAt)}</span>
                                             {item.story && (
                                                 <span className="badge badge-gold">{item.story.title}</span>
@@ -230,7 +229,7 @@ export function Research() {
                                     <button
                                         onClick={() => handleDeleteResearch(item.id)}
                                         className="btn-ghost"
-                                        style={{ padding: '0.5rem', color: 'var(--text-dim)' }}
+                                        style={{ padding: '0.5rem', color: 'var(--text-dim)', flexShrink: 0 }}
                                     >
                                         <Trash2 style={{ width: '16px', height: '16px' }} />
                                     </button>

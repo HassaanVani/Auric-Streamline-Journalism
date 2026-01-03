@@ -7,7 +7,9 @@ import {
     Plus,
     Loader,
     Trash2,
-    X
+    X,
+    ExternalLink,
+    RefreshCw
 } from 'lucide-react';
 
 export function Meetings() {
@@ -17,7 +19,10 @@ export function Meetings() {
     const [loading, setLoading] = useState(true);
     const [showNewForm, setShowNewForm] = useState(false);
 
-    // New meeting form
+    const [calendarStatus, setCalendarStatus] = useState({ configured: false, connected: false });
+    const [googleEvents, setGoogleEvents] = useState([]);
+    const [loadingCalendar, setLoadingCalendar] = useState(false);
+
     const [newMeeting, setNewMeeting] = useState({
         title: '',
         date: '',
@@ -25,12 +30,14 @@ export function Meetings() {
         duration: 30,
         platform: 'zoom',
         storyId: '',
-        contactName: ''
+        contactName: '',
+        syncToGoogle: false
     });
     const [saving, setSaving] = useState(false);
 
     useEffect(() => {
         loadData();
+        checkCalendarStatus();
     }, []);
 
     const loadData = async () => {
@@ -51,6 +58,39 @@ export function Meetings() {
         }
     };
 
+    const checkCalendarStatus = async () => {
+        try {
+            const status = await api.get('/calendar/status');
+            setCalendarStatus(status);
+            if (status.connected) {
+                loadGoogleEvents();
+            }
+        } catch (err) {
+            console.error('Calendar status check failed:', err);
+        }
+    };
+
+    const loadGoogleEvents = async () => {
+        setLoadingCalendar(true);
+        try {
+            const events = await api.get('/calendar/events');
+            setGoogleEvents(events);
+        } catch (err) {
+            console.error('Failed to load Google events:', err);
+        } finally {
+            setLoadingCalendar(false);
+        }
+    };
+
+    const handleConnectGoogle = async () => {
+        try {
+            const { authUrl } = await api.get('/calendar/connect');
+            window.location.href = authUrl;
+        } catch (err) {
+            console.error('Failed to get auth URL:', err);
+        }
+    };
+
     const handleCreateMeeting = async () => {
         if (!newMeeting.title || !newMeeting.date || !newMeeting.storyId) return;
 
@@ -65,6 +105,18 @@ export function Meetings() {
                 storyId: newMeeting.storyId,
                 contactName: newMeeting.contactName || null
             });
+
+            if (newMeeting.syncToGoogle && calendarStatus.connected) {
+                const endTime = new Date(dateTime.getTime() + newMeeting.duration * 60000);
+                await api.post('/calendar/events', {
+                    title: newMeeting.title,
+                    startTime: dateTime.toISOString(),
+                    endTime: endTime.toISOString(),
+                    createMeet: newMeeting.platform === 'google_meet'
+                });
+                loadGoogleEvents();
+            }
+
             setMeetings([meeting, ...meetings]);
             setNewMeeting({
                 title: '',
@@ -73,7 +125,8 @@ export function Meetings() {
                 duration: 30,
                 platform: 'zoom',
                 storyId: stories[0]?.id || '',
-                contactName: ''
+                contactName: '',
+                syncToGoogle: false
             });
             setShowNewForm(false);
         } catch (err) {
@@ -125,19 +178,63 @@ export function Meetings() {
     return (
         <div className="page-container">
             <header className="page-header">
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem' }}>
                     <div>
                         <h1 className="text-h1" style={{ marginBottom: '0.5rem' }}>Meetings</h1>
                         <p className="text-body">Schedule and track interviews with sources.</p>
                     </div>
-                    <button onClick={() => setShowNewForm(true)} className="btn btn-primary">
-                        <Plus style={{ width: '16px', height: '16px' }} />
-                        Schedule Meeting
-                    </button>
+                    <div style={{ display: 'flex', gap: '0.75rem' }}>
+                        {calendarStatus.configured && !calendarStatus.connected && (
+                            <button onClick={handleConnectGoogle} className="btn btn-secondary">
+                                <Calendar style={{ width: '16px', height: '16px' }} />
+                                Connect Google Calendar
+                            </button>
+                        )}
+                        {calendarStatus.connected && (
+                            <button onClick={loadGoogleEvents} disabled={loadingCalendar} className="btn btn-secondary">
+                                {loadingCalendar ? (
+                                    <Loader style={{ width: '16px', height: '16px', animation: 'spin 1s linear infinite' }} />
+                                ) : (
+                                    <RefreshCw style={{ width: '16px', height: '16px' }} />
+                                )}
+                                Sync
+                            </button>
+                        )}
+                        <button onClick={() => setShowNewForm(true)} className="btn btn-primary">
+                            <Plus style={{ width: '16px', height: '16px' }} />
+                            Schedule Meeting
+                        </button>
+                    </div>
                 </div>
             </header>
 
-            {/* New Meeting Form */}
+            {calendarStatus.connected && googleEvents.length > 0 && (
+                <section style={{ marginBottom: '2rem' }}>
+                    <h2 className="text-h3" style={{ marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <Calendar style={{ width: '20px', height: '20px', color: 'var(--gold)' }} />
+                        Google Calendar
+                    </h2>
+                    <div style={{ display: 'flex', gap: '0.75rem', overflowX: 'auto', paddingBottom: '0.5rem' }}>
+                        {googleEvents.slice(0, 5).map(event => (
+                            <div key={event.id} className="card" style={{ minWidth: '200px', padding: '1rem' }}>
+                                <p style={{ fontWeight: 500, color: 'var(--text-primary)', marginBottom: '0.5rem', fontSize: '0.875rem' }}>
+                                    {event.summary}
+                                </p>
+                                <p className="text-small">
+                                    {event.start?.dateTime ? formatDate(event.start.dateTime) : 'All day'}
+                                </p>
+                                {event.hangoutLink && (
+                                    <a href={event.hangoutLink} target="_blank" rel="noopener noreferrer"
+                                        className="text-small" style={{ color: 'var(--gold)', display: 'flex', alignItems: 'center', gap: '0.25rem', marginTop: '0.5rem' }}>
+                                        <Video style={{ width: '12px', height: '12px' }} /> Join Meet
+                                    </a>
+                                )}
+                            </div>
+                        ))}
+                    </div>
+                </section>
+            )}
+
             {showNewForm && (
                 <div className="panel" style={{ marginBottom: '2rem' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
@@ -213,6 +310,17 @@ export function Meetings() {
                         </div>
                     </div>
 
+                    {calendarStatus.connected && (
+                        <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem', cursor: 'pointer' }}>
+                            <input
+                                type="checkbox"
+                                checked={newMeeting.syncToGoogle}
+                                onChange={(e) => setNewMeeting({ ...newMeeting, syncToGoogle: e.target.checked })}
+                            />
+                            <span className="text-body">Add to Google Calendar</span>
+                        </label>
+                    )}
+
                     <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end' }}>
                         <button onClick={() => setShowNewForm(false)} className="btn btn-secondary">Cancel</button>
                         <button onClick={handleCreateMeeting} disabled={saving} className="btn btn-primary">
@@ -222,7 +330,6 @@ export function Meetings() {
                 </div>
             )}
 
-            {/* Empty state */}
             {meetings.length === 0 && !showNewForm && (
                 <div className="panel" style={{ textAlign: 'center', padding: '4rem 2rem' }}>
                     <Calendar style={{ width: '48px', height: '48px', color: 'var(--gold)', margin: '0 auto 1.5rem' }} />
@@ -237,7 +344,6 @@ export function Meetings() {
                 </div>
             )}
 
-            {/* Upcoming Meetings */}
             {upcomingMeetings.length > 0 && (
                 <section style={{ marginBottom: '2rem' }}>
                     <h2 className="text-h3" style={{ marginBottom: '1rem' }}>Upcoming</h2>
@@ -277,7 +383,6 @@ export function Meetings() {
                 </section>
             )}
 
-            {/* Past Meetings */}
             {pastMeetings.length > 0 && (
                 <section>
                     <h2 className="text-h3" style={{ marginBottom: '1rem', color: 'var(--text-secondary)' }}>Past</h2>
