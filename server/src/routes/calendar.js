@@ -14,25 +14,38 @@ const router = Router();
 router.use(authenticateToken);
 
 router.get('/status', async (req, res) => {
-    const configured = isCalendarConfigured();
-    const user = await prisma.user.findUnique({
-        where: { id: req.user.id },
-        select: { googleCalendarTokens: true }
-    });
+    try {
+        const configured = await isCalendarConfigured();
 
-    res.json({
-        configured,
-        connected: !!(user?.googleCalendarTokens)
-    });
+        let connected = false;
+        try {
+            const user = await prisma.user.findUnique({
+                where: { id: req.user.id },
+                select: { googleCalendarTokens: true }
+            });
+            connected = !!(user?.googleCalendarTokens);
+        } catch {
+            // Field may not exist in DB yet
+        }
+
+        res.json({ configured, connected });
+    } catch (error) {
+        res.json({ configured: false, connected: false });
+    }
 });
 
-router.get('/connect', (req, res) => {
-    if (!isCalendarConfigured()) {
+router.get('/connect', async (req, res) => {
+    const configured = await isCalendarConfigured();
+    if (!configured) {
         return res.status(503).json({ error: 'Google Calendar not configured on server' });
     }
 
-    const authUrl = getAuthUrl(req.user.id);
-    res.json({ authUrl });
+    try {
+        const authUrl = getAuthUrl(req.user.id);
+        res.json({ authUrl });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
 });
 
 router.get('/callback', async (req, res) => {
@@ -77,7 +90,7 @@ router.get('/events', async (req, res) => {
         });
 
         if (!user?.googleCalendarTokens) {
-            return res.status(401).json({ error: 'Calendar not connected' });
+            return res.json([]);
         }
 
         const tokens = JSON.parse(user.googleCalendarTokens);
@@ -86,7 +99,7 @@ router.get('/events', async (req, res) => {
         res.json(events);
     } catch (error) {
         console.error('List events error:', error);
-        res.status(500).json({ error: 'Failed to fetch events' });
+        res.json([]);
     }
 });
 

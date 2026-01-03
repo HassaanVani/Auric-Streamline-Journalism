@@ -1,19 +1,28 @@
+let googleAPIs = null;
 let oauth2Client = null;
 let googleConfigured = false;
 
-try {
-    const { google } = await import('googleapis');
+async function initGoogleAPIs() {
+    if (googleAPIs !== null) return;
 
-    if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
+    if (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET) {
+        googleAPIs = false;
+        return;
+    }
+
+    try {
+        const { google } = await import('googleapis');
+        googleAPIs = google;
         oauth2Client = new google.auth.OAuth2(
             process.env.GOOGLE_CLIENT_ID,
             process.env.GOOGLE_CLIENT_SECRET,
             process.env.GOOGLE_REDIRECT_URI || 'http://localhost:3001/api/calendar/callback'
         );
         googleConfigured = true;
+    } catch (error) {
+        console.log('googleapis not available:', error.message);
+        googleAPIs = false;
     }
-} catch (error) {
-    console.log('Google Calendar SDK not available:', error.message);
 }
 
 export function getAuthUrl(userId) {
@@ -45,11 +54,10 @@ export function setCredentials(tokens) {
 }
 
 export async function listEvents(tokens, timeMin, timeMax) {
-    if (!oauth2Client) throw new Error('Google Calendar not configured');
+    if (!googleAPIs || !oauth2Client) throw new Error('Google Calendar not configured');
 
-    const { google } = await import('googleapis');
     const auth = setCredentials(tokens);
-    const calendar = google.calendar({ version: 'v3', auth });
+    const calendar = googleAPIs.calendar({ version: 'v3', auth });
 
     const response = await calendar.events.list({
         calendarId: 'primary',
@@ -64,11 +72,10 @@ export async function listEvents(tokens, timeMin, timeMax) {
 }
 
 export async function createEvent(tokens, event) {
-    if (!oauth2Client) throw new Error('Google Calendar not configured');
+    if (!googleAPIs || !oauth2Client) throw new Error('Google Calendar not configured');
 
-    const { google } = await import('googleapis');
     const auth = setCredentials(tokens);
-    const calendar = google.calendar({ version: 'v3', auth });
+    const calendar = googleAPIs.calendar({ version: 'v3', auth });
 
     const calendarEvent = {
         summary: event.title,
@@ -99,11 +106,10 @@ export async function createEvent(tokens, event) {
 }
 
 export async function deleteEvent(tokens, eventId) {
-    if (!oauth2Client) throw new Error('Google Calendar not configured');
+    if (!googleAPIs || !oauth2Client) throw new Error('Google Calendar not configured');
 
-    const { google } = await import('googleapis');
     const auth = setCredentials(tokens);
-    const calendar = google.calendar({ version: 'v3', auth });
+    const calendar = googleAPIs.calendar({ version: 'v3', auth });
 
     await calendar.events.delete({
         calendarId: 'primary',
@@ -111,6 +117,7 @@ export async function deleteEvent(tokens, eventId) {
     });
 }
 
-export function isCalendarConfigured() {
+export async function isCalendarConfigured() {
+    await initGoogleAPIs();
     return googleConfigured;
 }
