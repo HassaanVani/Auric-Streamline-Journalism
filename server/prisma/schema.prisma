@@ -43,6 +43,7 @@ model Story {
   articles    Article[]
   meetings    Meeting[]
   transcripts Transcript[]
+  bookmarks   Bookmark[]
 }
 
 model Contact {
@@ -113,5 +114,16 @@ model Transcript {
   storyId   String
   story     Story    @relation(fields: [storyId], references: [id], onDelete: Cascade)
   source    String?
+  createdAt DateTime @default(now())
+}
+
+model Bookmark {
+  id        String   @id @default(uuid())
+  url       String
+  title     String
+  quote     String?
+  storyId   String?
+  story     Story?   @relation(fields: [storyId], references: [id], onDelete: SetNull)
+  userId    String
   createdAt DateTime @default(now())
 }

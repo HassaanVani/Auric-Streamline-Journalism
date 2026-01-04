@@ -167,6 +167,63 @@ Return as JSON array:
     return claimsList.map(claim => ({ claim, status: 'unverified', source: 'Pending verification' }));
 }
 
+export async function findSources(topic, context) {
+    const model = getModel();
+    const prompt = `You are an expert research assistant for investigative journalists.
+
+Find potential sources (experts, officials, witnesses, organizations) for investigating: "${topic}"
+${context ? `Additional context: ${context}` : ''}
+
+Identify 5-8 specific, real people or organizations who would be valuable sources. For each:
+- Name (real, verifiable person or organization)
+- Role/Title
+- Organization/Affiliation
+- Why they're relevant
+- Suggested approach (how to contact them)
+
+Return as JSON array:
+[{"name": "...", "role": "...", "org": "...", "relevance": "...", "approach": "..."}]`;
+
+    const result = await model.generateContent(prompt);
+    const text = result.response.text();
+
+    const jsonMatch = text.match(/\[[\s\S]*\]/);
+    if (jsonMatch) {
+        return JSON.parse(jsonMatch[0]);
+    }
+
+    return [];
+}
+
+export async function findWebsites(topic, storyContext) {
+    const model = getSearchModel();
+    const prompt = `You are a research assistant for investigative journalists.
+
+Find relevant websites and resources for researching: "${topic}"
+${storyContext ? `Story context: ${storyContext}` : ''}
+
+Identify 5-8 authoritative websites that would be useful for this investigation:
+- Government databases and public records
+- Industry publications and reports
+- Academic sources
+- News archives
+- Nonprofit/advocacy organizations
+- Data repositories
+
+Return as JSON array:
+[{"url": "https://...", "title": "...", "description": "Why this resource is valuable"}]`;
+
+    const result = await model.generateContent(prompt);
+    const text = result.response.text();
+
+    const jsonMatch = text.match(/\[[\s\S]*\]/);
+    if (jsonMatch) {
+        return JSON.parse(jsonMatch[0]);
+    }
+
+    return [];
+}
+
 export function isAIConfigured() {
     return !!process.env.GEMINI_API_KEY;
 }

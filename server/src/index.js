@@ -18,6 +18,7 @@ import questionsRoutes from './routes/questions.js';
 import emailsRoutes from './routes/emails.js';
 import reviewRoutes from './routes/review.js';
 import calendarRoutes from './routes/calendar.js';
+import bookmarksRoutes from './routes/bookmarks.js';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -52,6 +53,7 @@ app.use('/api/questions', questionsRoutes);
 app.use('/api/emails', emailsRoutes);
 app.use('/api/review', reviewRoutes);
 app.use('/api/calendar', calendarRoutes);
+app.use('/api/bookmarks', bookmarksRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {

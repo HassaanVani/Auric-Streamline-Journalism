@@ -10,7 +10,9 @@ import {
     X,
     AlertCircle,
     Filter,
-    Tag
+    Tag,
+    Loader,
+    UserPlus
 } from 'lucide-react';
 
 export function Contacts() {
@@ -21,8 +23,13 @@ export function Contacts() {
     const [searchQuery, setSearchQuery] = useState('');
     const [filterStory, setFilterStory] = useState('');
     const [showAddForm, setShowAddForm] = useState(false);
+    const [showFindSources, setShowFindSources] = useState(false);
+    const [findSourcesTopic, setFindSourcesTopic] = useState('');
+    const [findSourcesContext, setFindSourcesContext] = useState('');
+    const [findingSources, setFindingSources] = useState(false);
+    const [foundSources, setFoundSources] = useState([]);
+    const [addingSource, setAddingSource] = useState(null);
 
-    // New contact form
     const [newContact, setNewContact] = useState({ name: '', email: '', role: '', org: '', location: '', expertise: '' });
     const [newContactStories, setNewContactStories] = useState([]);
     const [saving, setSaving] = useState(false);
@@ -83,6 +90,43 @@ export function Contacts() {
             setNewContactStories(newContactStories.filter(id => id !== storyId));
         } else {
             setNewContactStories([...newContactStories, storyId]);
+        }
+    };
+
+    const handleFindSources = async () => {
+        if (!findSourcesTopic.trim()) return;
+
+        setFindingSources(true);
+        setFoundSources([]);
+        try {
+            const sources = await api.post('/contacts/find-sources', {
+                topic: findSourcesTopic.trim(),
+                context: findSourcesContext.trim()
+            });
+            setFoundSources(sources);
+        } catch (err) {
+            console.error('Find sources failed:', err);
+            setError(err.message || 'Failed to find sources');
+        } finally {
+            setFindingSources(false);
+        }
+    };
+
+    const handleAddFoundSource = async (source) => {
+        setAddingSource(source.name);
+        try {
+            const created = await api.post('/contacts', {
+                name: source.name,
+                role: source.role,
+                org: source.org,
+                expertise: source.relevance
+            });
+            setContacts([created, ...contacts]);
+            setFoundSources(foundSources.filter(s => s.name !== source.name));
+        } catch (err) {
+            console.error('Add source failed:', err);
+        } finally {
+            setAddingSource(null);
         }
     };
 
@@ -155,13 +199,113 @@ export function Contacts() {
                     </select>
                 </div>
 
-                <div style={{ marginLeft: 'auto' }}>
+                <div style={{ marginLeft: 'auto', display: 'flex', gap: '0.75rem' }}>
+                    <button onClick={() => setShowFindSources(true)} className="btn btn-secondary">
+                        <Sparkles style={{ width: '16px', height: '16px' }} />
+                        Find Sources
+                    </button>
                     <button onClick={() => setShowAddForm(true)} className="btn btn-primary">
                         <Plus style={{ width: '16px', height: '16px' }} />
                         Add Contact
                     </button>
                 </div>
             </div>
+
+            {showFindSources && (
+                <div className="panel panel-gold" style={{ marginBottom: '2rem' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                            <Sparkles style={{ width: '18px', height: '18px', color: 'var(--gold)' }} />
+                            <h2 className="text-h3" style={{ margin: 0 }}>AI Source Finder</h2>
+                        </div>
+                        <button onClick={() => { setShowFindSources(false); setFoundSources([]); }} className="btn-ghost" style={{ padding: '0.5rem' }}>
+                            <X style={{ width: '20px', height: '20px' }} />
+                        </button>
+                    </div>
+
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginBottom: '1.5rem' }}>
+                        <div>
+                            <label className="text-label" style={{ display: 'block', marginBottom: '0.5rem' }}>Topic *</label>
+                            <input
+                                type="text"
+                                value={findSourcesTopic}
+                                onChange={(e) => setFindSourcesTopic(e.target.value)}
+                                placeholder="e.g., Climate change policy, Local housing crisis"
+                                className="input"
+                                disabled={findingSources}
+                            />
+                        </div>
+                        <div>
+                            <label className="text-label" style={{ display: 'block', marginBottom: '0.5rem' }}>Context (optional)</label>
+                            <input
+                                type="text"
+                                value={findSourcesContext}
+                                onChange={(e) => setFindSourcesContext(e.target.value)}
+                                placeholder="Additional context about your investigation"
+                                className="input"
+                                disabled={findingSources}
+                            />
+                        </div>
+                        <button
+                            onClick={handleFindSources}
+                            disabled={!findSourcesTopic.trim() || findingSources}
+                            className="btn btn-primary"
+                            style={{ alignSelf: 'flex-start' }}
+                        >
+                            {findingSources ? (
+                                <>
+                                    <Loader style={{ width: '16px', height: '16px', animation: 'spin 1s linear infinite' }} />
+                                    Finding Sources...
+                                </>
+                            ) : (
+                                <>
+                                    <Search style={{ width: '16px', height: '16px' }} />
+                                    Find Sources
+                                </>
+                            )}
+                        </button>
+                    </div>
+
+                    {foundSources.length > 0 && (
+                        <div>
+                            <p className="text-label" style={{ marginBottom: '1rem' }}>Found {foundSources.length} potential sources</p>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                                {foundSources.map((source, i) => (
+                                    <div key={i} className="card" style={{ background: 'var(--bg-tertiary)' }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '1rem' }}>
+                                            <div style={{ flex: 1 }}>
+                                                <h4 style={{ fontSize: '1rem', fontWeight: 500, marginBottom: '0.25rem' }}>{source.name}</h4>
+                                                <p className="text-small" style={{ marginBottom: '0.5rem' }}>
+                                                    {[source.role, source.org].filter(Boolean).join(' at ')}
+                                                </p>
+                                                <p className="text-small" style={{ color: 'var(--text-secondary)', marginBottom: '0.5rem' }}>{source.relevance}</p>
+                                                {source.approach && (
+                                                    <p className="text-small" style={{ color: 'var(--gold)', fontStyle: 'italic' }}>
+                                                        💡 {source.approach}
+                                                    </p>
+                                                )}
+                                            </div>
+                                            <button
+                                                onClick={() => handleAddFoundSource(source)}
+                                                disabled={addingSource === source.name}
+                                                className="btn btn-primary"
+                                                style={{ flexShrink: 0 }}
+                                            >
+                                                {addingSource === source.name ? (
+                                                    <Loader style={{ width: '14px', height: '14px', animation: 'spin 1s linear infinite' }} />
+                                                ) : (
+                                                    <UserPlus style={{ width: '14px', height: '14px' }} />
+                                                )}
+                                                Add
+                                            </button>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+                </div>
+            )}
 
             {/* Add Contact Form */}
             {showAddForm && (

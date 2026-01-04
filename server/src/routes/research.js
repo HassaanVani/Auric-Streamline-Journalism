@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import prisma from '../lib/db.js';
 import { authenticateToken } from '../middleware/auth.js';
-import { searchResearch, isAIConfigured } from '../lib/ai.js';
+import { searchResearch, findWebsites, isAIConfigured } from '../lib/ai.js';
 
 const router = Router();
 
@@ -121,6 +121,26 @@ router.delete('/:id', async (req, res) => {
     } catch (error) {
         console.error('Delete research error:', error);
         res.status(500).json({ error: 'Failed to delete research' });
+    }
+});
+
+router.post('/find-websites', async (req, res) => {
+    try {
+        const { topic, storyContext } = req.body;
+
+        if (!topic) {
+            return res.status(400).json({ error: 'Topic is required' });
+        }
+
+        if (!isAIConfigured()) {
+            return res.status(503).json({ error: 'AI not configured. Add GEMINI_API_KEY to enable.' });
+        }
+
+        const websites = await findWebsites(topic, storyContext);
+        res.json(websites);
+    } catch (error) {
+        console.error('Find websites error:', error);
+        res.status(500).json({ error: 'Failed to find websites', details: error.message });
     }
 });
 

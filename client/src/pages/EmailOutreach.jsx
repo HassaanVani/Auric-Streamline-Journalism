@@ -153,6 +153,7 @@ export function EmailOutreach() {
                                 className="input"
                             >
                                 <option value="Interview request">Interview Request</option>
+                                <option value="Cold email">Cold Email (New Source)</option>
                                 <option value="Follow-up">Follow-up</option>
                                 <option value="Document request">Document Request</option>
                                 <option value="Clarification">Clarification</option>

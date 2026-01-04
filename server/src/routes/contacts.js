@@ -1,12 +1,31 @@
 import { Router } from 'express';
 import prisma from '../lib/db.js';
 import { authenticateToken } from '../middleware/auth.js';
+import { findSources, isAIConfigured } from '../lib/ai.js';
 
 const router = Router();
 
 router.use(authenticateToken);
 
-// Get all contacts for current user
+router.post('/find-sources', async (req, res) => {
+    try {
+        const { topic, context } = req.body;
+
+        if (!topic) {
+            return res.status(400).json({ error: 'Topic is required' });
+        }
+
+        if (!isAIConfigured()) {
+            return res.status(503).json({ error: 'AI not configured. Add GEMINI_API_KEY to enable.' });
+        }
+
+        const sources = await findSources(topic, context);
+        res.json(sources);
+    } catch (error) {
+        console.error('Find sources error:', error);
+        res.status(500).json({ error: 'Failed to find sources', details: error.message });
+    }
+});
 router.get('/', async (req, res) => {
     try {
         const contacts = await prisma.contact.findMany({
